@@ -427,10 +427,6 @@ fun LauncherScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
-            // Kafe: keyboard languages, right under the language picker (always shown).
-            tribixbite.cleverkeys.kafe.KafeKeyboardLanguagesCard(
-                colors.title, colors.subtitle, Modifier.statusBarsPadding().padding(top = 12.dp))
-
             // Logo - ALWAYS visible at fixed 120dp size (no change when keyboard appears)
             Box(
                 contentAlignment = Alignment.Center,
@@ -506,6 +502,9 @@ fun LauncherScreen(
                     isCompleted = isKeyboardSelected,
                     onClick = onSelectKeyboard
                 )
+
+                // Kafe: keyboard languages, right after selecting the keyboard.
+                tribixbite.cleverkeys.kafe.KafeKeyboardLanguagesCard(colors.title, colors.subtitle)
 
                 SetupCard(
                     number = "3",

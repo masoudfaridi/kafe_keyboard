@@ -56,7 +56,16 @@ object BundledPersianPack {
         // One reserved spacebar swipe per language (up EN, down FA, right KU, left AR, up-left TR).
         KafeSpaceLanguageKeys.setUp(app)
         Handler(Looper.getMainLooper()).post {
-            Thread({ ensureInstalled(app) }, "kafe-fa-pack").start()
+            Thread({
+                ensureInstalled(app)
+                // After Config's first-run migration: put back the languages ticked on the
+                // launcher, which that migration's layout-list rewrite dropped.
+                try {
+                    KafeKeyboardLanguages.restoreTicked(app)
+                } catch (e: Exception) {
+                    Log.e(TAG, "Restoring ticked languages failed", e)
+                }
+            }, "kafe-fa-pack").start()
         }
     }
 

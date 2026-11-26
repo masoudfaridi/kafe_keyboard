@@ -30,7 +30,9 @@ import java.util.Locale
 object KafeLanguage {
     const val PERSIAN = "fa"
     const val ENGLISH = "en"
-    val SUPPORTED = listOf(PERSIAN, ENGLISH)
+    /** Turkish: CleverKeys ships a full Turkish translation (res/values-tr). */
+    const val TURKISH = "tr"
+    val SUPPORTED = listOf(PERSIAN, ENGLISH, TURKISH)
 
     private const val TAG = "KafeLanguage"
     private const val PREFS = "kafe_language"
@@ -97,6 +99,7 @@ object KafeLanguage {
     /** The localized name of [language], written in that language. */
     fun displayName(language: String): String = when (language) {
         PERSIAN -> "فارسی"
+        TURKISH -> "Türkçe"
         else -> "English"
     }
 

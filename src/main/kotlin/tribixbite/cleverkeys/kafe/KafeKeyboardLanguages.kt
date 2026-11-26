@@ -42,7 +42,8 @@ object KafeKeyboardLanguages {
         PERSIAN("fa", "arab_pc_ir", "فارسی", "Persian", "Farsça", "الفارسية", "kafe/langpack-fa.zip", 2, null), // XML declares fa
         // Central Kurdish on the Persian layout (CleverKeys' arab_pc_ckb_fa), familiar to Persian
         // typists. Earlier builds used arab_pc_ckb; see [migrateKurdishLayout].
-        KURDISH("ckb", "arab_pc_ckb_fa", "کُردی", "Kurdish", "Kürtçe", "الكردية", null, 0, "ckb"),
+        // Pack: scripts/kafe/build_ckb_langpack.py (kww Kurdish Wikipedia counts + Sorani Hunspell).
+        KURDISH("ckb", "arab_pc_ckb_fa", "کُردی", "Kurdish", "Kürtçe", "الكردية", "kafe/langpack-ckb.zip", 1, "ckb"),
         TURKISH("tr", "latn_qwerty_tr", "ترکی", "Turkish", "Türkçe", "التركية", "kafe/langpack-tr.zip", 2, "tr"),
         // Pack: scripts/kafe/build_ar_langpack.py (wordfreq ar, 50,000 words).
         ARABIC("ar", "arab_pc", "عربی", "Arabic", "Arapça", "العربية", "kafe/langpack-ar.zip", 1, "ar");
@@ -77,7 +78,8 @@ object KafeKeyboardLanguages {
         p.edit().putStringSet(KEY_TICKED, set).apply()
     }
 
-    private const val KEY_ALL_PACKS = "all_packs_v1"
+    /** v2: the Kurdish (ckb) pack joined fa/tr/ar. */
+    private const val KEY_ALL_PACKS = "all_packs_v2"
     private const val OLD_KURDISH_LAYOUT = "arab_pc_ckb"
 
     /**
@@ -102,7 +104,7 @@ object KafeKeyboardLanguages {
     }
 
     /**
-     * Installs every bundled dictionary pack (fa, tr, ar) once, whether or not its language
+     * Installs every bundled dictionary pack (fa, tr, ar, ckb) once, whether or not its language
      * is ticked, so each language has its suggestions and swipe ready the moment it is turned
      * on. Bump [KEY_ALL_PACKS] when a new pack ships. Blocking; call off the main thread.
      */

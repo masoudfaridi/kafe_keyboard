@@ -77,6 +77,7 @@ object KafeEditToolbar {
     }
 
     private fun stateFor(bar: LinearLayout, rerender: () -> Unit): BarState {
+        if (context == null) context = bar.context.applicationContext
         val s = states.getOrPut(bar) {
             val (toggle, label) = createToggle(bar)
             BarState(toggle, label, Action.values().map { createButton(bar, it) })
@@ -91,7 +92,11 @@ object KafeEditToolbar {
             if (toolbar) t("پیشنهاد کلمات", "Word suggestions") else t("ابزار ویرایش", "Edit tools")
         s.toggleLabel.setTextColor(textColor)
         (s.toggleLabel.background as? GradientDrawable)?.setStroke(dp(s.toggleLabel, 1), textColor)
-        s.buttons.forEach { it.setTextColor(textColor) }
+        Action.values().forEachIndexed { i, action ->
+            s.buttons[i].text = label(action)
+            s.buttons[i].contentDescription = description(action)
+            s.buttons[i].setTextColor(textColor)
+        }
     }
 
     private fun createToggle(bar: LinearLayout): Pair<FrameLayout, TextView> {
@@ -195,8 +200,13 @@ object KafeEditToolbar {
     private fun dp(v: View, value: Int): Int =
         (value * v.resources.displayMetrics.density + 0.5f).toInt()
 
-    private fun t(fa: String, en: String): String =
-        if (Locale.getDefault().language == "fa") fa else en
+    /** Follows the app language ([KafeLanguage]), which on Android 13+ differs from the system's. */
+    private var context: android.content.Context? = null
+
+    private fun t(fa: String, en: String): String {
+        val lang = context?.let { KafeLanguage.current(it) } ?: Locale.getDefault().language
+        return if (lang == KafeLanguage.PERSIAN) fa else en
+    }
 
     private fun label(action: Action): String = when (action) {
         Action.SELECT_ALL -> t("همه", "All")

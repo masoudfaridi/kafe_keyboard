@@ -36,6 +36,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.zIndex
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -76,6 +77,8 @@ class LauncherActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // Kafe: app language (Persian by default on first run).
+        tribixbite.cleverkeys.kafe.KafeLanguage.ensureApplied(this)
 
         // Edge-to-edge setup for Compose with Material3 theme
         window?.let { w ->
@@ -372,6 +375,9 @@ fun LauncherScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .align(Alignment.TopStart) // Explicit fixed position at top
+                // Kafe: above the content column, which overlaps the row's lower half
+                // and swallowed taps on its buttons.
+                .zIndex(1f)
                 .statusBarsPadding()
                 .padding(16.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -389,6 +395,9 @@ fun LauncherScreen(
                     tint = colors.topIconTint
                 )
             }
+
+            // Kafe: app language dropdown (فارسی / English).
+            tribixbite.cleverkeys.kafe.KafeLanguagePicker(colors.topIconChipBackground, colors.topIconTint)
 
             // Settings gear icon - top right
             IconButton(

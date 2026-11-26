@@ -3,13 +3,18 @@ package tribixbite.cleverkeys.kafe
 import android.content.Context
 import android.content.SharedPreferences
 import android.net.Uri
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import tribixbite.cleverkeys.DirectBootAwarePreferences
 import tribixbite.cleverkeys.LanguageDisplayNames
 import tribixbite.cleverkeys.LanguagePrefs
 import tribixbite.cleverkeys.langpack.ImportResult
 import tribixbite.cleverkeys.langpack.LanguagePackManager
+import tribixbite.cleverkeys.prefs.LayoutsPreference
+import tribixbite.cleverkeys.prefs.ListGroupPreference
 import java.io.File
+import java.util.Locale
 
 /**
  * Kafe Keyboard: installs the Persian language pack that ships in the APK
@@ -33,15 +38,22 @@ object BundledPersianPack {
     private const val PREFS = "kafe_bundled_packs"
     private const val KEY_INSTALLED_VERSION = "fa_installed_version"
     private const val KEY_LANG_DEFAULTS_SEEDED = "lang_defaults_seeded"
+    private const val KEY_LAYOUT_SEEDED = "layout_seeded"
 
     @Volatile private var started = false
 
-    /** Installs the pack on a background thread when needed. Safe to call repeatedly. */
+    /**
+     * Installs the pack on a background thread when needed. Safe to call repeatedly.
+     * Posted to the main looper so it starts after the service's onCreate, i.e. after
+     * Config's first-run migration, which rewrites the layout list on a fresh install.
+     */
     fun ensureInstalledAsync(context: Context) {
         if (started) return
         started = true
         val app = context.applicationContext
-        Thread({ ensureInstalled(app) }, "kafe-fa-pack").start()
+        Handler(Looper.getMainLooper()).post {
+            Thread({ ensureInstalled(app) }, "kafe-fa-pack").start()
+        }
     }
 
     private fun ensureInstalled(context: Context) {
@@ -92,8 +104,15 @@ object BundledPersianPack {
      * left alone, and it runs only once, so turning either off later sticks.
      */
     private fun seedLanguageDefaults(context: Context, kafePrefs: SharedPreferences) {
-        if (kafePrefs.getBoolean(KEY_LANG_DEFAULTS_SEEDED, false)) return
         val prefs = DirectBootAwarePreferences.get_shared_preferences(context)
+        // Own flag: installs that already seeded the languages (kafe-v0.1.0) still get it once.
+        if (!kafePrefs.getBoolean(KEY_LAYOUT_SEEDED, false)) {
+            val edit = prefs.edit()
+            addSecondLayout(prefs, edit)
+            edit.apply()
+            kafePrefs.edit().putBoolean(KEY_LAYOUT_SEEDED, true).apply()
+        }
+        if (kafePrefs.getBoolean(KEY_LANG_DEFAULTS_SEEDED, false)) return
         val edit = prefs.edit()
         if (!prefs.contains(LanguagePrefs.MULTILANG)) {
             edit.putBoolean(LanguagePrefs.MULTILANG, true)
@@ -106,4 +125,26 @@ object BundledPersianPack {
         kafePrefs.edit().putBoolean(KEY_LANG_DEFAULTS_SEEDED, true).apply()
         Log.i(TAG, "Seeded Multi-Language with Persian as secondary")
     }
+
+    /**
+     * Makes sure an English and a Persian layout are both enabled, so the spacebar's
+     * swipe up/down (next/previous layout, shown only with 2+ layouts) switches the keys,
+     * and with them the language: Persian PC is bound to `fa` in its XML.
+     * On a phone whose system language is Persian the system layout is already Persian,
+     * so English QWERTY is added instead.
+     */
+    private fun addSecondLayout(prefs: SharedPreferences, edit: SharedPreferences.Editor) {
+        val current = ListGroupPreference.loadFromPreferences(
+            LayoutsPreference.KEY, prefs, LayoutsPreference.DEFAULT, LayoutsPreference.SERIALIZER
+        ) ?: LayoutsPreference.DEFAULT
+        val names = current.mapNotNull { (it as? LayoutsPreference.NamedLayout)?.name }
+        val systemIsPersian = Locale.getDefault().language == CODE
+        val wanted = if (systemIsPersian) ENGLISH_LAYOUT else PERSIAN_LAYOUT
+        if (wanted in names) return
+        if (!systemIsPersian && current.size > 1) return // the user already picked layouts
+        LayoutsPreference.saveToPreferences(edit, current + LayoutsPreference.NamedLayout(wanted))
+    }
+
+    private const val PERSIAN_LAYOUT = "arab_pc_ir"
+    private const val ENGLISH_LAYOUT = "latn_qwerty_us"
 }

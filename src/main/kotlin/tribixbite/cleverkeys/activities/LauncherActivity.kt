@@ -480,6 +480,9 @@ fun LauncherScreen(
                 }
             }
 
+            // Kafe: keyboard languages (English + Persian/Kurdish/Turkish/Arabic checkboxes).
+            if (!isKeyboardVisible) tribixbite.cleverkeys.kafe.KafeKeyboardLanguagesCard(colors.title, colors.subtitle)
+
             // Setup Cards with completion indicators
             Column(
                 modifier = Modifier.fillMaxWidth(),

@@ -67,29 +67,9 @@ object BundledPersianPack {
                 return
             }
 
-            val manager = LanguagePackManager.getInstance(context)
-            val installed = manager.getInstalledPacks().firstOrNull { it.code == CODE }
-            if (installed != null && installed.version >= PACK_VERSION) {
+            if (installPack(context, ASSET, CODE, PACK_VERSION)) {
                 kafePrefs.edit().putInt(KEY_INSTALLED_VERSION, PACK_VERSION).apply()
                 seedLanguageDefaults(context, kafePrefs)
-                return
-            }
-
-            val tmp = File(context.cacheDir, "kafe-langpack-fa.zip")
-            context.assets.open(ASSET).use { input ->
-                tmp.outputStream().use { input.copyTo(it) }
-            }
-            try {
-                when (val result = manager.importLanguagePack(Uri.fromFile(tmp))) {
-                    is ImportResult.Success -> {
-                        kafePrefs.edit().putInt(KEY_INSTALLED_VERSION, PACK_VERSION).apply()
-                        Log.i(TAG, "Installed bundled Persian pack v${result.manifest.version}")
-                        seedLanguageDefaults(context, kafePrefs)
-                    }
-                    is ImportResult.Error -> Log.e(TAG, "Bundled Persian pack refused: ${result.message}")
-                }
-            } finally {
-                tmp.delete()
             }
         } catch (e: IllegalStateException) {
             // Locked device (direct boot): retry on the next service start.
@@ -97,6 +77,36 @@ object BundledPersianPack {
             Log.w(TAG, "Storage not available yet, will retry", e)
         } catch (e: Exception) {
             Log.e(TAG, "Installing bundled Persian pack failed", e)
+        }
+    }
+
+    /**
+     * Installs the bundled pack [asset] (language [code]) unless that pack, at [version] or
+     * newer, is already installed. Blocking: call off the main thread.
+     * @return true when the pack is installed afterwards
+     */
+    fun installPack(context: Context, asset: String, code: String, version: Int): Boolean {
+        val manager = LanguagePackManager.getInstance(context)
+        val installed = manager.getInstalledPacks().firstOrNull { it.code == code }
+        if (installed != null && installed.version >= version) return true
+
+        val tmp = File(context.cacheDir, "kafe-langpack-$code.zip")
+        context.assets.open(asset).use { input ->
+            tmp.outputStream().use { input.copyTo(it) }
+        }
+        try {
+            return when (val result = manager.importLanguagePack(Uri.fromFile(tmp))) {
+                is ImportResult.Success -> {
+                    Log.i(TAG, "Installed bundled $code pack v${result.manifest.version}")
+                    true
+                }
+                is ImportResult.Error -> {
+                    Log.e(TAG, "Bundled $code pack refused: ${result.message}")
+                    false
+                }
+            }
+        } finally {
+            tmp.delete()
         }
     }
 
@@ -110,7 +120,7 @@ object BundledPersianPack {
         // Own flag: installs that already seeded the languages (kafe-v0.1.0) still get it once.
         if (!kafePrefs.getBoolean(KEY_LAYOUT_SEEDED, false)) {
             val edit = prefs.edit()
-            addSecondLayout(prefs, edit)
+            addSecondLayout(context, prefs, edit)
             edit.apply()
             kafePrefs.edit().putBoolean(KEY_LAYOUT_SEEDED, true).apply()
         }
@@ -135,12 +145,14 @@ object BundledPersianPack {
      * On a phone whose system language is Persian the system layout is already Persian,
      * so English QWERTY is added instead.
      */
-    private fun addSecondLayout(prefs: SharedPreferences, edit: SharedPreferences.Editor) {
+    private fun addSecondLayout(context: Context, prefs: SharedPreferences, edit: SharedPreferences.Editor) {
         val current = ListGroupPreference.loadFromPreferences(
             LayoutsPreference.KEY, prefs, LayoutsPreference.DEFAULT, LayoutsPreference.SERIALIZER
         ) ?: LayoutsPreference.DEFAULT
         val names = current.mapNotNull { (it as? LayoutsPreference.NamedLayout)?.name }
-        val systemIsPersian = Locale.getDefault().language == CODE
+        // The PHONE's language, not the app's: KafeLanguage switches the app to Persian,
+        // which would otherwise read as a Persian phone.
+        val systemIsPersian = KafeLanguage.systemLanguage(context) == CODE
         val wanted = if (systemIsPersian) ENGLISH_LAYOUT else PERSIAN_LAYOUT
         if (wanted in names) return
         if (!systemIsPersian && current.size > 1) return // the user already picked layouts

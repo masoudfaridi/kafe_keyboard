@@ -2812,7 +2812,8 @@ class Keyboard2View @JvmOverloads constructor(
 
         val subPadding = snap.keyPadding
         // Limit label length for display, then keep it inside its slot (never over the main label)
-        val displayLen = minOf(label.length, 4)
+        // Kafe: was 4; stored labels may hold MAX_STORED_DISPLAY_LENGTH (full language names).
+        val displayLen = minOf(label.length, tribixbite.cleverkeys.customization.ShortSwipeMapping.MAX_STORED_DISPLAY_LENGTH)
         paint.textSize = SubLabelSizing.fitToBudget(
             textSize, paint.measureText(label, 0, displayLen), SubLabelSizing.maxWidth(keyW, subPadding, sub_index, mainLabelW))
         var yPos = y

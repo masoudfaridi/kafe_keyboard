@@ -73,7 +73,7 @@ fun KafeKeyboardLanguagesCard(titleColor: Color, textColor: Color, modifier: Mod
             )
             Text(
                 t(
-                    "روی Space بکشید: بالا English، پایین فارسی، بالا-راست کوردی، پایین-چپ العربية، پایین-راست Türkçe.",
+                    "روی Space بکشید: بالا English، پایین فارسی، بالا-راست کُردی، پایین-چپ عربی، پایین-راست ترکی.",
                     "Swipe on the spacebar: up English, down Persian, up-right Kurdish, down-left Arabic, down-right Turkish."
                 ),
                 color = textColor, fontSize = 13.sp
@@ -84,7 +84,7 @@ fun KafeKeyboardLanguagesCard(titleColor: Color, textColor: Color, modifier: Mod
             ) {
                 LanguageCheck("English", checked = true, enabled = false, textColor) {}
                 for (lang in KafeKeyboardLanguages.Language.values()) {
-                    LanguageCheck(lang.nativeName, lang in enabled, enabled = !busy, textColor) { on ->
+                    LanguageCheck(if (persianUi) lang.faName else lang.enName, lang in enabled, enabled = !busy, textColor) { on ->
                         busy = true
                         enabled = if (on) enabled + lang else enabled - lang
                         KafeKeyboardLanguages.setEnabled(context, lang, on) {
@@ -99,7 +99,7 @@ fun KafeKeyboardLanguagesCard(titleColor: Color, textColor: Color, modifier: Mod
             if (enabled.any { !it.hasDictionary }) {
                 Text(
                     t(
-                        "کوردی و العربیة فعلاً پیشنهاد کلمه و swipe ندارند.",
+                        "کُردی و عربی فعلاً پیشنهاد کلمه و swipe ندارند.",
                         "Kurdish and Arabic have no word suggestions or swipe yet."
                     ),
                     color = textColor, fontSize = 12.sp

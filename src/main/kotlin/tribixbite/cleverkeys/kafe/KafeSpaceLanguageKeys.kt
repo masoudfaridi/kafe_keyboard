@@ -44,17 +44,17 @@ object KafeSpaceLanguageKeys {
     private const val EXTRA_LANG = "lang"
     private const val ENGLISH = "en"
     private const val PREFS = "kafe_bundled_packs"
-    /** v2: the corrected slot layout (v1 never shipped; its mappings are cleaned up). */
-    private const val KEY_INSTALLED = "space_language_keys_v2"
+    /** v3: full language names as labels (v2: the corrected slots; v1 never shipped). */
+    private const val KEY_INSTALLED = "space_language_keys_v3"
 
     private data class Slot(val direction: SwipeDirection, val lang: String, val label: String)
 
     private val SLOTS = listOf(
         Slot(SwipeDirection.N, ENGLISH, "EN"),
-        Slot(SwipeDirection.S, KafeKeyboardLanguages.Language.PERSIAN.code, "فا"),
-        Slot(SwipeDirection.NE, KafeKeyboardLanguages.Language.KURDISH.code, "کو"),
-        Slot(SwipeDirection.SW, KafeKeyboardLanguages.Language.ARABIC.code, "عر"),
-        Slot(SwipeDirection.SE, KafeKeyboardLanguages.Language.TURKISH.code, "TR"),
+        Slot(SwipeDirection.S, KafeKeyboardLanguages.Language.PERSIAN.code, KafeKeyboardLanguages.Language.PERSIAN.faName),
+        Slot(SwipeDirection.NE, KafeKeyboardLanguages.Language.KURDISH.code, KafeKeyboardLanguages.Language.KURDISH.faName),
+        Slot(SwipeDirection.SW, KafeKeyboardLanguages.Language.ARABIC.code, KafeKeyboardLanguages.Language.ARABIC.faName),
+        Slot(SwipeDirection.SE, KafeKeyboardLanguages.Language.TURKISH.code, KafeKeyboardLanguages.Language.TURKISH.faName),
     )
 
     /** CleverKeys' next/previous-layout gestures on space up/down (Extra Keys entries). */

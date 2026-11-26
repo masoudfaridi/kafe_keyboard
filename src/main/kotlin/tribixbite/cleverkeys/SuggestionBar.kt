@@ -197,6 +197,9 @@ class SuggestionBar : LinearLayout {
         minimumWidth = dpToPx(context, 200)
 
         // Don't create fixed TextViews - they'll be created dynamically in setSuggestionsWithScores()
+
+        // Kafe: show the edit toolbar before the first suggestion update arrives.
+        post { if (currentSuggestions.isEmpty() && childCount == 0 && !isPasswordMode) rebindSuggestionViews() }
     }
 
     private fun createSuggestionView(context: Context, index: Int): TextView {

@@ -40,7 +40,9 @@ object KafeKeyboardLanguages {
         val bindLanguage: String?,
     ) {
         PERSIAN("fa", "arab_pc_ir", "فارسی", "Persian", "Farsça", "الفارسية", "kafe/langpack-fa.zip", 2, null), // XML declares fa
-        KURDISH("ckb", "arab_pc_ckb", "کُردی", "Kurdish", "Kürtçe", "الكردية", null, 0, "ckb"),
+        // Central Kurdish on the Persian layout (CleverKeys' arab_pc_ckb_fa), familiar to Persian
+        // typists. Earlier builds used arab_pc_ckb; see [migrateKurdishLayout].
+        KURDISH("ckb", "arab_pc_ckb_fa", "کُردی", "Kurdish", "Kürtçe", "الكردية", null, 0, "ckb"),
         TURKISH("tr", "latn_qwerty_tr", "ترکی", "Turkish", "Türkçe", "التركية", "kafe/langpack-tr.zip", 2, "tr"),
         // Pack: scripts/kafe/build_ar_langpack.py (wordfreq ar, 50,000 words).
         ARABIC("ar", "arab_pc", "عربی", "Arabic", "Arapça", "العربية", "kafe/langpack-ar.zip", 1, "ar");
@@ -76,6 +78,28 @@ object KafeKeyboardLanguages {
     }
 
     private const val KEY_ALL_PACKS = "all_packs_v1"
+    private const val OLD_KURDISH_LAYOUT = "arab_pc_ckb"
+
+    /**
+     * Kurdish moved from arab_pc_ckb to arab_pc_ckb_fa: replace the old layout entry in place
+     * (same position, so the spacebar order stays) on installs that ticked Kurdish before.
+     * Blocking; call off the main thread.
+     */
+    fun migrateKurdishLayout(context: Context) {
+        val prefs = DirectBootAwarePreferences.get_shared_preferences(context.applicationContext)
+        val current = load(prefs)
+        if (current.none { it.nameOf() == OLD_KURDISH_LAYOUT }) return
+        val hasNew = current.any { it.nameOf() == Language.KURDISH.layout }
+        val updated = current.mapNotNull {
+            if (it.nameOf() != OLD_KURDISH_LAYOUT) it
+            else if (hasNew) null
+            else LayoutsPreference.NamedLayout(Language.KURDISH.layout, Language.KURDISH.bindLanguage)
+        }
+        val edit = prefs.edit()
+        LayoutsPreference.saveToPreferences(edit, updated)
+        edit.apply()
+        Log.i(TAG, "Kurdish layout moved to ${Language.KURDISH.layout}")
+    }
 
     /**
      * Installs every bundled dictionary pack (fa, tr, ar) once, whether or not its language

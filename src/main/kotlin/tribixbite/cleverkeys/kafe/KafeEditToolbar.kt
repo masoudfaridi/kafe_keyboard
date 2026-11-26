@@ -17,6 +17,8 @@ import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.TextView
 import tribixbite.cleverkeys.CleverKeysService
+import tribixbite.cleverkeys.KeyValue
+import tribixbite.cleverkeys.Theme
 import java.util.Locale
 import java.util.WeakHashMap
 
@@ -34,7 +36,7 @@ import java.util.WeakHashMap
 object KafeEditToolbar {
     private const val REPEAT_DELAY_MS = 400L
     private const val REPEAT_INTERVAL_MS = 50L
-    private const val TEXT_SP = 15f
+    private const val ICON_SP = 20f
     private const val TOGGLE_SLOT_DP = 44
     private const val TOGGLE_CIRCLE_DP = 34
 
@@ -94,7 +96,6 @@ object KafeEditToolbar {
         s.toggleLabel.setTextColor(textColor)
         (s.toggleLabel.background as? GradientDrawable)?.setStroke(dp(s.toggleLabel, 1), textColor)
         Action.values().forEachIndexed { i, action ->
-            s.buttons[i].text = label(action)
             s.buttons[i].contentDescription = description(action)
             s.buttons[i].setTextColor(textColor)
         }
@@ -126,13 +127,30 @@ object KafeEditToolbar {
         return slot to label
     }
 
+    /**
+     * The button's icon: the same glyph CleverKeys draws on its own copy/cut/paste/select-all
+     * and arrow keys (special_font.ttf), so the toolbar looks like the keyboard and does not
+     * change with the language. The language only shows in [description] (TalkBack).
+     */
+    private fun glyph(action: Action): String = KeyValue.getKeyByName(
+        when (action) {
+            Action.SELECT_ALL -> "selectAll"
+            Action.COPY -> "copy"
+            Action.LEFT -> "left"
+            Action.RIGHT -> "right"
+            Action.CUT -> "cut"
+            Action.PASTE -> "paste"
+        }
+    ).getString()
+
     @SuppressLint("ClickableViewAccessibility")
     private fun createButton(bar: LinearLayout, action: Action): TextView =
         TextView(bar.context).apply {
-            text = label(action)
+            text = glyph(action)
+            typeface = Theme.getKeyFont(bar.context)
             contentDescription = description(action)
             gravity = Gravity.CENTER
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, TEXT_SP)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, ICON_SP)
             maxLines = 1
             isClickable = true
             isFocusable = false
@@ -214,19 +232,13 @@ object KafeEditToolbar {
         }
     }
 
-    private fun label(action: Action): String = when (action) {
-        Action.SELECT_ALL -> t("همه", "All", "Tümü", "الكل")
-        Action.COPY -> t("کپی", "Copy", "Kopyala", "نسخ")
-        Action.LEFT -> "◀"
-        Action.RIGHT -> "▶"
-        Action.CUT -> t("برش", "Cut", "Kes", "قص")
-        Action.PASTE -> t("چسباندن", "Paste", "Yapıştır", "لصق")
-    }
-
+    /** Spoken name of each button (TalkBack), in the app language. */
     private fun description(action: Action): String = when (action) {
         Action.SELECT_ALL -> t("انتخاب همه", "Select all", "Tümünü seç", "تحديد الكل")
+        Action.COPY -> t("کپی", "Copy", "Kopyala", "نسخ")
         Action.LEFT -> t("حرکت کرسر به چپ", "Move cursor left", "İmleci sola taşı", "تحريك المؤشر يسارًا")
         Action.RIGHT -> t("حرکت کرسر به راست", "Move cursor right", "İmleci sağa taşı", "تحريك المؤشر يمينًا")
-        else -> label(action)
+        Action.CUT -> t("برش", "Cut", "Kes", "قص")
+        Action.PASTE -> t("چسباندن", "Paste", "Yapıştır", "لصق")
     }
 }

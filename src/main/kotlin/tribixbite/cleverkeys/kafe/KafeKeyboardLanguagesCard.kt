@@ -44,10 +44,11 @@ import androidx.compose.ui.unit.sp
 fun KafeKeyboardLanguagesCard(titleColor: Color, textColor: Color, modifier: Modifier = Modifier) {
     val context = LocalContext.current
     val uiLang = remember { KafeLanguage.current(context) }
-    fun t(fa: String, en: String, tr: String = en, ar: String = en) = when (uiLang) {
+    fun t(fa: String, en: String, tr: String = en, ar: String = en, ckb: String = en) = when (uiLang) {
         KafeLanguage.PERSIAN -> fa
         KafeLanguage.TURKISH -> tr
         KafeLanguage.ARABIC -> ar
+        KafeLanguage.KURDISH -> ckb
         else -> en
     }
 
@@ -73,7 +74,7 @@ fun KafeKeyboardLanguagesCard(titleColor: Color, textColor: Color, modifier: Mod
     ) {
         Column(Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
             Text(
-                t("زبان‌های صفحه‌کلید", "Keyboard languages", "Klavye dilleri", "لغات لوحة المفاتيح"),
+                t("زبان‌های صفحه‌کلید", "Keyboard languages", "Klavye dilleri", "لغات لوحة المفاتيح", "زمانەکانی تەختەکلیل"),
                 color = titleColor, fontSize = 17.sp, fontWeight = FontWeight.Bold
             )
             Text(
@@ -81,7 +82,8 @@ fun KafeKeyboardLanguagesCard(titleColor: Color, textColor: Color, modifier: Mod
                     "روی Space بکشید: بالا English، پایین فارسی، بالا-راست کُردی، پایین-چپ عربی، پایین-راست ترکی.",
                     "Swipe on the spacebar: up English, down Persian, up-right Kurdish, down-left Arabic, down-right Turkish.",
                     "Boşluk tuşunda kaydırın: yukarı İngilizce, aşağı Farsça, sağ üst Kürtçe, sol alt Arapça, sağ alt Türkçe.",
-                    "اسحب على مفتاح المسافة: للأعلى الإنجليزية، للأسفل الفارسية، أعلى اليمين الكردية، أسفل اليسار العربية، أسفل اليمين التركية."
+                    "اسحب على مفتاح المسافة: للأعلى الإنجليزية، للأسفل الفارسية، أعلى اليمين الكردية، أسفل اليسار العربية، أسفل اليمين التركية.",
+                    "لەسەر کلیلی بۆشایی ڕایبکێشە: سەرەوە ئینگلیزی، خوارەوە فارسی، سەرەوەی ڕاست کوردی، خوارەوەی چەپ عەرەبی، خوارەوەی ڕاست تورکی."
                 ),
                 color = textColor, fontSize = 13.sp
             )
@@ -91,7 +93,7 @@ fun KafeKeyboardLanguagesCard(titleColor: Color, textColor: Color, modifier: Mod
             ) {
                 LanguageCheck("English", checked = true, enabled = false, textColor) {}
                 for (lang in KafeKeyboardLanguages.Language.values()) {
-                    LanguageCheck(t(lang.faName, lang.enName, lang.trName, lang.arName), lang in enabled, enabled = !busy, textColor) { on ->
+                    LanguageCheck(t(lang.faName, lang.enName, lang.trName, lang.arName, lang.ckbName), lang in enabled, enabled = !busy, textColor) { on ->
                         busy = true
                         enabled = if (on) enabled + lang else enabled - lang
                         KafeKeyboardLanguages.setEnabled(context, lang, on) {

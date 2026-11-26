@@ -91,8 +91,8 @@ object KafeEditToolbar {
     private fun style(s: BarState, textColor: Int, toolbar: Boolean) {
         s.toggleLabel.text = if (toolbar) "Aa" else "✎"
         s.toggleLabel.contentDescription =
-            if (toolbar) t("پیشنهاد کلمات", "Word suggestions", "Kelime önerileri", "اقتراحات الكلمات")
-            else t("ابزار ویرایش", "Edit tools", "Düzenleme araçları", "أدوات التحرير")
+            if (toolbar) t("پیشنهاد کلمات", "Word suggestions", "Kelime önerileri", "اقتراحات الكلمات", "پێشنیاری وشەکان")
+            else t("ابزار ویرایش", "Edit tools", "Düzenleme araçları", "أدوات التحرير", "ئامرازەکانی دەستکاری")
         s.toggleLabel.setTextColor(textColor)
         (s.toggleLabel.background as? GradientDrawable)?.setStroke(dp(s.toggleLabel, 1), textColor)
         Action.values().forEachIndexed { i, action ->
@@ -222,23 +222,24 @@ object KafeEditToolbar {
     /** Follows the app language ([KafeLanguage]), which on Android 13+ differs from the system's. */
     private var context: android.content.Context? = null
 
-    private fun t(fa: String, en: String, tr: String = en, ar: String = en): String {
+    private fun t(fa: String, en: String, tr: String = en, ar: String = en, ckb: String = en): String {
         val lang = context?.let { KafeLanguage.current(it) } ?: Locale.getDefault().language
         return when (lang) {
             KafeLanguage.PERSIAN -> fa
             KafeLanguage.TURKISH -> tr
             KafeLanguage.ARABIC -> ar
+            KafeLanguage.KURDISH -> ckb
             else -> en
         }
     }
 
     /** Spoken name of each button (TalkBack), in the app language. */
     private fun description(action: Action): String = when (action) {
-        Action.SELECT_ALL -> t("انتخاب همه", "Select all", "Tümünü seç", "تحديد الكل")
-        Action.COPY -> t("کپی", "Copy", "Kopyala", "نسخ")
-        Action.LEFT -> t("حرکت کرسر به چپ", "Move cursor left", "İmleci sola taşı", "تحريك المؤشر يسارًا")
-        Action.RIGHT -> t("حرکت کرسر به راست", "Move cursor right", "İmleci sağa taşı", "تحريك المؤشر يمينًا")
-        Action.CUT -> t("برش", "Cut", "Kes", "قص")
-        Action.PASTE -> t("چسباندن", "Paste", "Yapıştır", "لصق")
+        Action.SELECT_ALL -> t("انتخاب همه", "Select all", "Tümünü seç", "تحديد الكل", "هەمووی دیاری بکە")
+        Action.COPY -> t("کپی", "Copy", "Kopyala", "نسخ", "لەبەرگرتنەوە")
+        Action.LEFT -> t("حرکت کرسر به چپ", "Move cursor left", "İmleci sola taşı", "تحريك المؤشر يسارًا", "نیشاندەر بۆ چەپ")
+        Action.RIGHT -> t("حرکت کرسر به راست", "Move cursor right", "İmleci sağa taşı", "تحريك المؤشر يمينًا", "نیشاندەر بۆ ڕاست")
+        Action.CUT -> t("برش", "Cut", "Kes", "قص", "بڕین")
+        Action.PASTE -> t("چسباندن", "Paste", "Yapıştır", "لصق", "لکاندن")
     }
 }

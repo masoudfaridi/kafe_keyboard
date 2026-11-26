@@ -244,6 +244,9 @@ android {
     // AGP bump makes resConfigs a hard error (it is a Kotlin annotation, so a Groovy build
     // script gets no warning today).
     resConfigs rootProject.ext.shippedLocales
+    // Kafe: the locales translated in res-kafe/ (kept apart from shippedLocales, which must
+    // match the res/ directory set exactly). Without this aapt2 drops values-b+ckb.
+    resConfigs 'ar', 'b+ckb'
   }
 
   kotlinOptions {

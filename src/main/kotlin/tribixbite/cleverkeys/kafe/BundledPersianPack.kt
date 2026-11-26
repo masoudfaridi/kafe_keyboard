@@ -61,6 +61,7 @@ object BundledPersianPack {
                 // After Config's first-run migration: put back the languages ticked on the
                 // launcher, which that migration's layout-list rewrite dropped.
                 try {
+                    KafeKeyboardLanguages.migrateKurdishLayout(app)
                     KafeKeyboardLanguages.restoreTicked(app)
                     KafeKeyboardLanguages.installAllPacks(app)
                 } catch (e: Exception) {

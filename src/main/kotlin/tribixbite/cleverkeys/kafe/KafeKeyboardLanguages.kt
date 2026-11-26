@@ -33,15 +33,17 @@ object KafeKeyboardLanguages {
         val enName: String,
         /** Full Turkish name: card labels in the Turkish UI. */
         val trName: String,
+        /** Full Arabic name: card labels in the Arabic UI. */
+        val arName: String,
         val packAsset: String?,
         val packVersion: Int,
         val bindLanguage: String?,
     ) {
-        PERSIAN("fa", "arab_pc_ir", "فارسی", "Persian", "Farsça", "kafe/langpack-fa.zip", 2, null), // XML declares fa
-        KURDISH("ckb", "arab_pc_ckb", "کُردی", "Kurdish", "Kürtçe", null, 0, "ckb"),
-        TURKISH("tr", "latn_qwerty_tr", "ترکی", "Turkish", "Türkçe", "kafe/langpack-tr.zip", 2, "tr"),
+        PERSIAN("fa", "arab_pc_ir", "فارسی", "Persian", "Farsça", "الفارسية", "kafe/langpack-fa.zip", 2, null), // XML declares fa
+        KURDISH("ckb", "arab_pc_ckb", "کُردی", "Kurdish", "Kürtçe", "الكردية", null, 0, "ckb"),
+        TURKISH("tr", "latn_qwerty_tr", "ترکی", "Turkish", "Türkçe", "التركية", "kafe/langpack-tr.zip", 2, "tr"),
         // Pack: scripts/kafe/build_ar_langpack.py (wordfreq ar, 50,000 words).
-        ARABIC("ar", "arab_pc", "عربی", "Arabic", "Arapça", "kafe/langpack-ar.zip", 1, "ar");
+        ARABIC("ar", "arab_pc", "عربی", "Arabic", "Arapça", "العربية", "kafe/langpack-ar.zip", 1, "ar");
 
         /** True when a dictionary (suggestions, swipe) ships for this language. */
         val hasDictionary: Boolean get() = packAsset != null

@@ -383,6 +383,9 @@ android {
       kotlin.srcDirs = ['src/main/kotlin', 'build/generated/search/kotlin']
       java.srcDirs = ['src/main/java']
       res.srcDirs = ['res', 'build/generated/layouts/res', 'build/generated/version/res']
+      // Kafe: Kafe-only resources (Arabic UI translation), kept out of res/ so upstream
+      // merges and its 21-locale translation test are not affected.
+      res.srcDirs += 'res-kafe'
       // build/generated/licenseAssets: NOTICE + licence texts for the in-app Open-source
       // licenses screen, copied from the repository by generateLicenseAssets (never committed).
       assets.srcDirs = ['assets', 'src/main/assets', 'build/generated/licenseAssets']

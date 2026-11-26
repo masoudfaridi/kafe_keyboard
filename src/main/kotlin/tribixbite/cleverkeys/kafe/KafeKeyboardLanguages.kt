@@ -38,15 +38,17 @@ object KafeKeyboardLanguages {
         val packAsset: String?,
         val packVersion: Int,
         val bindLanguage: String?,
+        /** Full Kurdish (Sorani) name: card labels in the Kurdish UI. */
+        val ckbName: String,
     ) {
-        PERSIAN("fa", "arab_pc_ir", "فارسی", "Persian", "Farsça", "الفارسية", "kafe/langpack-fa.zip", 2, null), // XML declares fa
+        PERSIAN("fa", "arab_pc_ir", "فارسی", "Persian", "Farsça", "الفارسية", "kafe/langpack-fa.zip", 2, null, "فارسی"), // XML declares fa
         // Central Kurdish on the Persian layout (CleverKeys' arab_pc_ckb_fa), familiar to Persian
         // typists. Earlier builds used arab_pc_ckb; see [migrateKurdishLayout].
         // Pack: scripts/kafe/build_ckb_langpack.py (kww Kurdish Wikipedia counts + Sorani Hunspell).
-        KURDISH("ckb", "arab_pc_ckb_fa", "کُردی", "Kurdish", "Kürtçe", "الكردية", "kafe/langpack-ckb.zip", 1, "ckb"),
-        TURKISH("tr", "latn_qwerty_tr", "ترکی", "Turkish", "Türkçe", "التركية", "kafe/langpack-tr.zip", 2, "tr"),
+        KURDISH("ckb", "arab_pc_ckb_fa", "کُردی", "Kurdish", "Kürtçe", "الكردية", "kafe/langpack-ckb.zip", 1, "ckb", "کوردی"),
+        TURKISH("tr", "latn_qwerty_tr", "ترکی", "Turkish", "Türkçe", "التركية", "kafe/langpack-tr.zip", 2, "tr", "تورکی"),
         // Pack: scripts/kafe/build_ar_langpack.py (wordfreq ar, 50,000 words).
-        ARABIC("ar", "arab_pc", "عربی", "Arabic", "Arapça", "العربية", "kafe/langpack-ar.zip", 1, "ar");
+        ARABIC("ar", "arab_pc", "عربی", "Arabic", "Arapça", "العربية", "kafe/langpack-ar.zip", 1, "ar", "عەرەبی");
 
         /** True when a dictionary (suggestions, swipe) ships for this language. */
         val hasDictionary: Boolean get() = packAsset != null

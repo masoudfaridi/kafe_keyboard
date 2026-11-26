@@ -34,7 +34,9 @@ object KafeLanguage {
     const val TURKISH = "tr"
     /** Arabic: Kafe's own translation (res-kafe/values-ar). */
     const val ARABIC = "ar"
-    val SUPPORTED = listOf(PERSIAN, ENGLISH, ARABIC, TURKISH)
+    /** Central Kurdish (Sorani): Kafe's own translation (res-kafe/values-b+ckb). */
+    const val KURDISH = "ckb"
+    val SUPPORTED = listOf(PERSIAN, ENGLISH, KURDISH, ARABIC, TURKISH)
 
     private const val TAG = "KafeLanguage"
     private const val PREFS = "kafe_language"
@@ -101,6 +103,7 @@ object KafeLanguage {
     /** The localized name of [language], written in that language. */
     fun displayName(language: String): String = when (language) {
         PERSIAN -> "فارسی"
+        KURDISH -> "کوردی"
         ARABIC -> "العربية"
         TURKISH -> "Türkçe"
         else -> "English"

@@ -61,6 +61,7 @@ object BundledPersianPack {
                 // After Config's first-run migration: put back the languages ticked on the
                 // launcher, which that migration's layout-list rewrite dropped.
                 try {
+                    seedKafeDefaults(app)
                     KafeKeyboardLanguages.migrateKurdishLayout(app)
                     KafeKeyboardLanguages.restoreTicked(app)
                     KafeKeyboardLanguages.installAllPacks(app)
@@ -91,6 +92,22 @@ object BundledPersianPack {
         } catch (e: Exception) {
             Log.e(TAG, "Installing bundled Persian pack failed", e)
         }
+    }
+
+    private const val KEY_AUTOCORRECT_SEEDED = "autocorrect_off_v1"
+    private const val PREF_AUTOCORRECT = "autocorrect_enabled"
+
+    /**
+     * Kafe defaults that differ from CleverKeys', applied once: autocorrect starts OFF.
+     * Only written when the user never chose a value, so turning it on later sticks.
+     */
+    private fun seedKafeDefaults(context: Context) {
+        val kafePrefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        if (kafePrefs.getBoolean(KEY_AUTOCORRECT_SEEDED, false)) return
+        val prefs = DirectBootAwarePreferences.get_shared_preferences(context)
+        if (!prefs.contains(PREF_AUTOCORRECT)) prefs.edit().putBoolean(PREF_AUTOCORRECT, false).apply()
+        kafePrefs.edit().putBoolean(KEY_AUTOCORRECT_SEEDED, true).apply()
+        Log.i(TAG, "Autocorrect off by default")
     }
 
     /**

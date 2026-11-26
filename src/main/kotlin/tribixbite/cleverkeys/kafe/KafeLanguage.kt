@@ -80,6 +80,20 @@ object KafeLanguage {
         }
     }
 
+    /**
+     * The phone's own language, unaffected by the app language. On Android 13+ the per-app
+     * language also rewrites `Resources.getSystem()` inside the app, so only
+     * [LocaleManager.getSystemLocales] tells the truth there.
+     */
+    fun systemLanguage(context: Context): String {
+        if (Build.VERSION.SDK_INT >= 33) {
+            val locales = localeManager(context)?.systemLocales
+            if (locales != null && !locales.isEmpty) return locales[0].language
+        }
+        val locales = android.content.res.Resources.getSystem().configuration.locales
+        return if (locales.isEmpty) Locale.getDefault().language else locales[0].language
+    }
+
     /** The localized name of [language], written in that language. */
     fun displayName(language: String): String = when (language) {
         PERSIAN -> "فارسی"

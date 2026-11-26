@@ -27,15 +27,18 @@ object KafeKeyboardLanguages {
     enum class Language(
         val code: String,
         val layout: String,
-        val nativeName: String,
+        /** Full Persian name: card labels in the Persian UI and the spacebar labels. */
+        val faName: String,
+        /** Full English name: card labels in the English UI. */
+        val enName: String,
         val packAsset: String?,
         val packVersion: Int,
         val bindLanguage: String?,
     ) {
-        PERSIAN("fa", "arab_pc_ir", "فارسی", "kafe/langpack-fa.zip", 2, null), // XML declares fa
-        KURDISH("ckb", "arab_pc_ckb", "کوردی", null, 0, "ckb"),
-        TURKISH("tr", "latn_qwerty_tr", "Türkçe", "kafe/langpack-tr.zip", 2, "tr"),
-        ARABIC("ar", "arab_pc", "العربية", null, 0, "ar");
+        PERSIAN("fa", "arab_pc_ir", "فارسی", "Persian", "kafe/langpack-fa.zip", 2, null), // XML declares fa
+        KURDISH("ckb", "arab_pc_ckb", "کُردی", "Kurdish", null, 0, "ckb"),
+        TURKISH("tr", "latn_qwerty_tr", "ترکی", "Turkish", "kafe/langpack-tr.zip", 2, "tr"),
+        ARABIC("ar", "arab_pc", "عربی", "Arabic", null, 0, "ar");
 
         /** True when a dictionary (suggestions, swipe) ships for this language. */
         val hasDictionary: Boolean get() = packAsset != null

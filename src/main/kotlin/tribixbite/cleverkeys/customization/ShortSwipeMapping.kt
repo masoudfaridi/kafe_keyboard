@@ -24,8 +24,8 @@ data class ShortSwipeMapping(
 ) {
     init {
         require(keyCode.isNotEmpty()) { "keyCode cannot be empty" }
-        require(displayText.length <= MAX_DISPLAY_LENGTH) {
-            "displayText must be at most $MAX_DISPLAY_LENGTH characters"
+        require(displayText.length <= MAX_STORED_DISPLAY_LENGTH) { // Kafe: was MAX_DISPLAY_LENGTH
+            "displayText must be at most $MAX_STORED_DISPLAY_LENGTH characters"
         }
         require(actionValue.length <= MAX_ACTION_LENGTH) {
             "actionValue must be at most $MAX_ACTION_LENGTH characters"
@@ -51,6 +51,9 @@ data class ShortSwipeMapping(
     companion object {
         /** Maximum characters for display text on key sub-label */
         const val MAX_DISPLAY_LENGTH = 4
+        // Kafe: what a stored mapping may hold. The editor and factories still cut labels to
+        // MAX_DISPLAY_LENGTH; Kafe's spacebar language labels ("فارسی", "کُردی") need 5.
+        const val MAX_STORED_DISPLAY_LENGTH = 6
 
         /** Maximum characters for action value (text input or serialized intent) */
         const val MAX_ACTION_LENGTH = 4096

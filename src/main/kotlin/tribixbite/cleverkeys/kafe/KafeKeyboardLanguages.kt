@@ -48,11 +48,59 @@ object KafeKeyboardLanguages {
     }
 
     /**
+     * The languages the user ticked, kept apart from the layout list: CleverKeys' first-run
+     * migration (Config, when the keyboard service starts for the first time) rewrites the
+     * layout list to the system layout alone, which wiped ticks made on the launcher before
+     * the keyboard was ever selected. [restoreTicked] puts them back afterwards.
+     */
+    private const val PREFS = "kafe_keyboard_languages"
+    private const val KEY_TICKED = "ticked"
+
+    private fun tickedPrefs(context: Context) =
+        context.applicationContext.createDeviceProtectedStorageContext()
+            .getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+
+    private fun rememberTick(context: Context, language: Language, on: Boolean) {
+        val p = tickedPrefs(context)
+        val set = p.getStringSet(KEY_TICKED, emptySet())!!.toMutableSet()
+        if (on) set += language.code else set -= language.code
+        p.edit().putStringSet(KEY_TICKED, set).apply()
+    }
+
+    /**
+     * Re-adds the layout of every language the user ticked that is missing from the layout
+     * list (never removes anything). Blocking; call off the main thread, after the keyboard
+     * service's first-run setup.
+     */
+    fun restoreTicked(context: Context) {
+        val ticked = tickedPrefs(context).getStringSet(KEY_TICKED, null) ?: return
+        val wanted = Language.values().filter { it.code in ticked }
+        if (wanted.isEmpty()) return
+        val prefs = DirectBootAwarePreferences.get_shared_preferences(context.applicationContext)
+        val current = load(prefs)
+        val names = current.mapNotNull { it.nameOf() }.toSet()
+        val missing = wanted.filter { it.layout !in names }
+        if (missing.isEmpty()) return
+        for (lang in missing) {
+            if (lang.packAsset != null) {
+                BundledPersianPack.installPack(context, lang.packAsset, lang.code, lang.packVersion)
+            }
+        }
+        val edit = prefs.edit()
+        LayoutsPreference.saveToPreferences(
+            edit, current + missing.map { LayoutsPreference.NamedLayout(it.layout, it.bindLanguage) }
+        )
+        edit.apply()
+        Log.i(TAG, "Restored ticked layouts: ${missing.joinToString { it.code }}")
+    }
+
+    /**
      * Turns [language] on (adds its layout, installs its pack in the background) or off
      * (removes its layout). English is never touched. [onDone] runs on a background thread.
      */
     fun setEnabled(context: Context, language: Language, on: Boolean, onDone: () -> Unit = {}) {
         val app = context.applicationContext
+        rememberTick(app, language, on)
         Thread({
             try {
                 if (on && language.packAsset != null) {

@@ -73,8 +73,8 @@ fun KafeKeyboardLanguagesCard(titleColor: Color, textColor: Color, modifier: Mod
             )
             Text(
                 t(
-                    "برای جابه‌جایی بین زبان‌ها، Space را به بالا یا پایین بکشید.",
-                    "Swipe the spacebar up or down to switch between them."
+                    "روی Space بکشید: بالا English، پایین فارسی، بالا-راست کوردی، پایین-چپ العربية، پایین-راست Türkçe.",
+                    "Swipe on the spacebar: up English, down Persian, up-right Kurdish, down-left Arabic, down-right Turkish."
                 ),
                 color = textColor, fontSize = 13.sp
             )

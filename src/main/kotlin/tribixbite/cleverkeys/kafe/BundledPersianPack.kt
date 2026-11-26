@@ -51,6 +51,8 @@ object BundledPersianPack {
         if (started) return
         started = true
         val app = context.applicationContext
+        // The keyboard follows the app language too (Persian by default).
+        KafeLanguage.ensureApplied(app)
         Handler(Looper.getMainLooper()).post {
             Thread({ ensureInstalled(app) }, "kafe-fa-pack").start()
         }

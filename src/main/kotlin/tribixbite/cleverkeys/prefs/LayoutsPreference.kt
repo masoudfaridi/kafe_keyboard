@@ -416,7 +416,8 @@ class LayoutsPreference(ctx: Context, attrs: AttributeSet?) : ListGroupPreferenc
         private const val THEME_FIELD = "theme"
         /** JSON field of a modified copy's built-in origin ([CustomLayout.origin]). */
         private const val ORIGIN_FIELD = "origin"
-        val DEFAULT: List<Layout> = listOf(SystemLayout())
+        // Kafe: Persian PC ships next to the system layout by default.
+        val DEFAULT: List<Layout> = listOf(SystemLayout(), NamedLayout("arab_pc_ir"))
         val SERIALIZER: ListGroupPreference.Serializer<Layout> = Serializer()
 
         /** Obtained from [res/values/layouts.xml]. */

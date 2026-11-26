@@ -53,6 +53,8 @@ object BundledPersianPack {
         val app = context.applicationContext
         // The keyboard follows the app language too (Persian by default).
         KafeLanguage.ensureApplied(app)
+        // One reserved spacebar swipe per language (up EN, down FA, right KU, left AR, up-left TR).
+        KafeSpaceLanguageKeys.setUp(app)
         Handler(Looper.getMainLooper()).post {
             Thread({ ensureInstalled(app) }, "kafe-fa-pack").start()
         }

@@ -300,6 +300,14 @@ class SuggestionBar : LinearLayout {
      */
     private fun rebindSuggestionViews() {
         val count = currentSuggestions.size
+        // Kafe: edit toolbar (toggle, select all, copy, arrows, cut, paste) when the bar is
+        // empty or the user switched to it with the round toggle.
+        val kafeColor = theme?.suggestionTextColor?.takeIf { it != 0 } ?: Color.WHITE
+        if (tribixbite.cleverkeys.kafe.KafeEditToolbar.showsToolbar(this, count)) {
+            slotMode = false
+            reconcileChildren(tribixbite.cleverkeys.kafe.KafeEditToolbar.toolbarViews(this, kafeColor) { rebindSuggestionViews() })
+            return
+        }
         val parsed = currentSuggestions.map { Suggestion.parse(it) }
 
         // A keyboard look shows a fixed row of equal slots, best candidate in the centre
@@ -332,6 +340,8 @@ class SuggestionBar : LinearLayout {
             if (i > 0) desired.add(dividerViews[i - 1])
             desired.add(suggestionViews[i])
         }
+        // Kafe: the round toggle comes first in suggestion mode too.
+        desired.add(0, tribixbite.cleverkeys.kafe.KafeEditToolbar.toggleView(this, kafeColor) { rebindSuggestionViews() })
 
         reconcileChildren(desired)
     }

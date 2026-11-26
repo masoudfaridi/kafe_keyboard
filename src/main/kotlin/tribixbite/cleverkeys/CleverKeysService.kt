@@ -438,6 +438,9 @@ class CleverKeysService : InputMethodService(),
         // Initialize ComposeKeyData early (required for shift key modifier operations)
         ComposeKeyData.initialize(this)
 
+        // Kafe: install the bundled Persian language pack on first run.
+        tribixbite.cleverkeys.kafe.BundledPersianPack.ensureInstalledAsync(this)
+
         val prefs = DirectBootAwarePreferences.get_shared_preferences(this)
         _handler = Handler(mainLooper)
         _lastOrientation = resources.configuration.orientation

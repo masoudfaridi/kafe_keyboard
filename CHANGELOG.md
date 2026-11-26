@@ -18,6 +18,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 (The emoji picker with categories and search, the hold-for-subkeys popover and the DIY theme
 editor that used to be listed here already ship in 2.0.)
 
+### Fixed (learning from corrected words, 2026-11-26)
+
+- A swiped or autocorrected word you delete with ordinary Backspace (with "Backspace undoes
+  swipe" off), with the editor's own word delete, or by deleting part of it and typing on, is no
+  longer learned: when the next word takes its place, its word pair, its three-word sequence and
+  its personal-vocabulary count are taken back, and the next word does not learn a pair with it.
+- Going back to fix an earlier word no longer learns a pair between the fixed word and the last
+  word you typed, and tapping a suggestion there no longer deletes text before the cursor by the
+  length of the last swiped word (`fix got something`, tap `git` on `got`, gave `git something`).
+- Replacing a swiped word whose commit made Auto-Detect switch languages takes its word pair back
+  from the language it was learned in.
+- In Multi-Language with Auto-Detect, a word added from the suggestion bar (the add prompt, the
+  "+word" chip or an autocorrect undo) while Auto-Detect has just detected the second language,
+  in the same sentence and field, goes to that language's personal dictionary (it went to the
+  primary's), and its undo removes it from there. Otherwise it goes to the primary's.
+
+### Fixed (Settings and Dictionary Manager, 2026-11-26)
+
+- Dictionary Manager shows the primary language's list as soon as it is loaded: the lists still
+  load one at a time, but in tab order, so German no longer waits for a Russian secondary.
+- With Swiss spelling on, Dictionary Manager lists German words with ss (`strasse`), as the
+  keyboard suggests them; `Maße`/`Masse` show as one row, and a word disabled in either spelling
+  shows as disabled.
+- Searching Settings for the Swiss spelling switch while German is not selected lands on Primary
+  Language (or on the Multi-Language switch while that is off), where German is chosen.
+- "Auto-Detect is not available for this pair" no longer shows when no second language is set.
+- Removing a language pack finishes when the screen is rotated midway; a second pack import or
+  removal started while one runs now says so instead of doing nothing.
+- Importing custom clipboard sanitization rules finishes when the screen is rotated midway (the
+  rules file, its location and the clipboard's reload no longer stop half way).
+- A second GIF pack shared or picked while one imports now says it was not imported.
+- The "Pack already installed — replace it?" prompt of a GIF pack import stays open across a
+  rotation, and shows for a shared pack while the GIF section is collapsed.
+
 ---
 
 ## [2.0.0] - unreleased
@@ -617,6 +651,12 @@ editor that used to be listed here already ship in 2.0.)
 
 ### Fixed
 
+- Private copy from the text-selection menu uses the largest-clipping size saved in Settings,
+  also right after a restore while the keyboard is not running (it used a copy that only the
+  running keyboard refreshes).
+- A full backup's summary counts every dictionary word and swipe priority it added. A backup
+  made with a 1.x version carries the words in its settings file as well; those were added, but
+  the summary counted only the dictionary file's words, and swipe priorities not at all.
 - Adding a word to the dictionary needs less memory while the swipe dictionary is rebuilt: the
   old copy is let go before the new one is built, and the English word list is read piece by piece
   instead of all at once. On a test phone with a 256 MB limit this rebuild had reached 195 MB.
@@ -671,6 +711,11 @@ editor that used to be listed here already ship in 2.0.)
 - After Auto-Detect switched next-word predictions to your second language, turning Auto-Detect
   or Multi-Language off, changing the second language or picking a layout bound to your first
   language returns them to your first language; they stayed in the second.
+- After Auto-Detect switched next-word predictions to your second language, a word you disabled
+  for that language in the Dictionary Manager is no longer suggested as the next word.
+- Changing a setting or the language no longer makes keyboards from earlier sessions reload their
+  dictionaries and contractions in the background; one language change loaded the English
+  contraction list six times.
 - Clipboard link cleaning follows the settings a restore wrote, even while another keyboard is in
   use, and a copy is no longer lost when the keyboard had never started.
 - A word added from a person-name field keeps its capital (Kowalski), even at the field start.

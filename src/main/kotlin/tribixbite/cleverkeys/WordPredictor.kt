@@ -55,6 +55,14 @@ class WordPredictor : Predictor {
         private const val CONTRACTION_ALIAS_RANK = 254
 
         /**
+         * Autocorrect step 1's secondary-word margin, in byte-rank steps: a word of the secondary
+         * language is kept as typed unless the primary correction is more than this many steps
+         * more common ([secondaryWordYields]). [Int.MAX_VALUE] = always kept (the behaviour since
+         * `aa9b57ba`). Chosen by docs/eval/2026-11-26-secondary-bypass-gate.md.
+         */
+        internal const val SECONDARY_BYPASS_MARGIN_STEPS = Int.MAX_VALUE
+
+        /**
          * [disabled] (one language's `disabled_words_<lang>` set) lowercased, less the words of
          * that language's `custom_words_<lang>` JSON: a word added back as a custom word wins, as
          * [isWordDisabled] lets the primary language's do. Unreadable JSON leaves every disabled
@@ -444,7 +452,14 @@ class WordPredictor : Predictor {
      */
     private var lastRecordedCommit: RecordedCommit? = null
 
-    private class RecordedCommit(val word: String, val window: List<String>, val language: String)
+    /**
+     * [language] is the next-word language whose store the commit wrote to; [dictionaryLanguage]
+     * the loaded primary dictionary whose lexicon judged learnability. A detected switch moves
+     * only the former (2026-11-26), so a rollback after it still targets [language]'s store.
+     */
+    private class RecordedCommit(
+        val word: String, val window: List<String>, val language: String, val dictionaryLanguage: String
+    )
 
     private data class LearningGates(
         val master: Boolean, val context: Boolean, val vocabulary: Boolean,
@@ -835,6 +850,8 @@ class WordPredictor : Predictor {
      */
     fun reloadDisabledWords() {
         loadDisabledWords()
+        // A Dictionary Manager edit may have changed the detected next-word language's list too.
+        detectedDisabledCache = null
     }
 
     /**
@@ -990,7 +1007,9 @@ class WordPredictor : Predictor {
         // mixed-language pairs into the NEW language's store.
         if (language != currentLanguage) {
             invalidateExactLearningCommit()
+            secondaryVerdictFresh = false
             recentWords.clear()
+            detectedDisabledCache = null
         }
         currentLanguage = language
         bigramModel?.let {
@@ -1056,6 +1075,44 @@ class WordPredictor : Predictor {
         val wanted = ArabicScriptFold.fold(word.lowercase(), language)
         return index.lookup(index.normalizeKey(word))?.canonicals
             ?.any { ArabicScriptFold.fold(it.lowercase(), language) == wanted } == true
+    }
+
+    /**
+     * The secondary index's 0–255 frequency rank (0 = most common) of the accent-free group that
+     * holds [word]'s exact spelling, or null when [word] is not one of its spellings (same match as
+     * [isInSecondaryLexiconExactly]). The index exposes the group's best rank only, so a rarer
+     * accent twin (`como` beside `cómo`) is credited with the group's most common rank: the error
+     * keeps more secondary words, never fewer.
+     */
+    private fun secondaryExactRank(word: String): Int? {
+        val index = secondaryIndex ?: return null
+        val language = secondaryLanguageCode
+        val wanted = ArabicScriptFold.fold(word.lowercase(), language)
+        val found = index.lookup(index.normalizeKey(word)) ?: return null
+        if (found.canonicals.none { ArabicScriptFold.fold(it.lowercase(), language) == wanted }) return null
+        return found.bestFrequencyRank
+    }
+
+    /**
+     * Whether the secondary-language word [secondaryWord] gives way to the primary-language
+     * correction [correction] (autocorrect step 1, docs/eval/2026-11-26-secondary-bypass-gate.md):
+     * the correction's byte frequency `freq · 255 / maxFreq` exceeds the word's `255 − rank` by more
+     * than [marginSteps]. A correction with no primary frequency (none found under its lookup key,
+     * its apostrophe-free key or its `ß` key) never wins.
+     */
+    internal fun secondaryWordYields(secondaryWord: String, correction: String, marginSteps: Int): Boolean {
+        val rank = secondaryExactRank(secondaryWord) ?: return false
+        val dict = dictionary.get()
+        val maxFreq = dictMaxFrequency(dict)
+        if (maxFreq <= 0) return false
+        val key = lookupKey(correction)
+        val freq = dict[key]
+            ?: NextWordPredictor.apostropheFreeKey(key)?.let { dict[it] }
+            ?: sharpSDictionaryKey(key)?.let { dict[it] }
+            ?: return false
+        val correctionByte = freq.toLong() * 255 / maxFreq
+        val secondaryByte = (255 - rank).toLong()
+        return correctionByte - secondaryByte > marginSteps
     }
 
     override fun isInDictionary(word: String, fieldAllowsPersonalizedLearning: Boolean): Boolean {
@@ -1141,7 +1198,7 @@ class WordPredictor : Predictor {
         recentWords.add(normalizedWord)
         while (recentWords.size > MAX_RECENT_WORDS) recentWords.removeAt(0)
         lastRecordedCommit = RecordedCommit(
-            normalizedWord, recentWords.takeLast(LearningGate.CONTEXT_WINDOW), currentLanguage
+            normalizedWord, recentWords.takeLast(LearningGate.CONTEXT_WINDOW), currentLanguage, dictionaryLanguage
         )
         // Supersede the previous identity BEFORE any sink can throw or be interrupted.
         exactLearningCommit = null
@@ -1217,16 +1274,36 @@ class WordPredictor : Predictor {
         commit: LearningCommit, replacement: String, fieldAllowsPersonalizedLearning: Boolean
     ): LearningCommitReplacement {
         if (replacement.isBlank()) return LearningCommitReplacement.Invalidated
+        return reverseLearningCommit(commit, fieldAllowsPersonalizedLearning) { gates ->
+            LearningCommitReplacement.Applied(recordContextCommit(replacement, gates, fieldAllowsPersonalizedLearning))
+        } ?: LearningCommitReplacement.Invalidated
+    }
+
+    /**
+     * W2 follow-up (2026-11-26): the word [commit] learned left the editor through ordinary
+     * editing (Backspace letter by letter, the editor's own word delete) and a different word
+     * now stands in its place. Same exact-receipt contract as [replaceLearningCommit], without
+     * recording a replacement: the caller's next [addWordToContext] learns what the user kept.
+     */
+    override fun rollbackLearningCommit(commit: LearningCommit, fieldAllowsPersonalizedLearning: Boolean): Boolean =
+        reverseLearningCommit(commit, fieldAllowsPersonalizedLearning) { true } == true
+
+    /**
+     * Reverse the exact latest commit's increments once and restore its learn window, then run
+     * [afterRollback] under the same learning-store locks. Null when [commit] is not the newest
+     * commit, a store changed since, or a store refused the decrement (ownership is dropped then).
+     */
+    private fun <T : Any> reverseLearningCommit(
+        commit: LearningCommit, fieldAllowed: Boolean, afterRollback: (LearningGates) -> T
+    ): T? {
         val gates = refreshLearningEpoch()
-        if (matchingLearningCommit(commit, gates, fieldAllowsPersonalizedLearning) == null) {
-            return LearningCommitReplacement.Invalidated
-        }
-        return withLearningStoreLocks(gates, fieldAllowsPersonalizedLearning) {
-            val recorded = matchingLearningCommit(commit, gates, fieldAllowsPersonalizedLearning)
-                ?: return@withLearningStoreLocks LearningCommitReplacement.Invalidated
+        if (matchingLearningCommit(commit, gates, fieldAllowed) == null) return null
+        return withLearningStoreLocks(gates, fieldAllowed) {
+            val recorded = matchingLearningCommit(commit, gates, fieldAllowed)
+                ?: return@withLearningStoreLocks null
             if (!receiptsAreCurrent(recorded)) {
                 invalidateExactLearningCommit()
-                return@withLearningStoreLocks LearningCommitReplacement.Invalidated
+                return@withLearningStoreLocks null
             }
             // Consume before mutation; a failed operation is never retried against an older
             // same-spelled word. All validation precedes the first decrement under these locks.
@@ -1239,23 +1316,18 @@ class WordPredictor : Predictor {
                 val vocabularyUndone = recorded.vocabularyReceipt?.let {
                     recorded.vocabularyOwner?.rollbackReceipt(it) == true
                 } ?: true
-                if (!contextUndone || !vocabularyUndone) {
-                    recentWords.clear()
-                    return@withLearningStoreLocks LearningCommitReplacement.Invalidated
-                }
                 recentWords.clear()
+                if (!contextUndone || !vocabularyUndone) return@withLearningStoreLocks null
                 recentWords.addAll(recorded.windowBefore)
-                LearningCommitReplacement.Applied(
-                    recordContextCommit(replacement, gates, fieldAllowsPersonalizedLearning)
-                )
+                afterRollback(gates)
             } catch (error: Exception) {
                 // Store/persistence failures are not an atomic rollback guarantee. Abandon
                 // transient ownership; do not replay writes or reconstruct forgotten data.
                 invalidateExactLearningCommit()
                 lastRecordedCommit = null
                 recentWords.clear()
-                Log.w(TAG, "Learning replacement failed; commit ownership invalidated", error)
-                LearningCommitReplacement.Invalidated
+                Log.w(TAG, "Learning rollback failed; commit ownership invalidated", error)
+                null
             }
         }
     }
@@ -1277,6 +1349,45 @@ class WordPredictor : Predictor {
         val secondary = cfg.active_secondary_language ?: return null
         // Safe call kept: an Objenesis/relaxed test Config leaves the non-null field null.
         return setOf(config?.primary_language ?: currentLanguage, secondary)
+    }
+
+    /**
+     * True while the newest detection verdict named the next-word language, the active secondary,
+     * and the window that produced it has not ended. Set by [noteDetectionVerdict]; cleared by a
+     * switch, a sentence boundary ([onSentenceBoundary]), a context clear ([clearContext]) and a
+     * new input session ([onInputSessionChanged]).
+     */
+    @Volatile private var secondaryVerdictFresh = false
+
+    /** A detection run named [language] (a switch to it, or a confirmation of it). */
+    private fun noteDetectionVerdict(language: String) {
+        secondaryVerdictFresh = language == currentLanguage && language != dictionaryLanguage &&
+            language == config?.active_secondary_language
+    }
+
+    /**
+     * 2026-11-26 (Pixel: `parcero` added from the bar while typing Spanish in en+es went to the
+     * English list): the active secondary language when a detected switch moved the next-word
+     * language to it ([switchNextWordLanguage]) and detection still applies; null otherwise,
+     * including before any dictionary load ([dictionaryLanguageOrNull] unset).
+     *
+     * Fresh evidence only (Fable review of 7d1275a67): detection runs once five words fill a
+     * window, and a switch otherwise sticks, so short English messages after a Spanish paragraph
+     * still read as Spanish. The verdict counts in the window that produced it (the switch's own
+     * window included) and in the input session it was made in; after that the answer is null,
+     * i.e. the primary, until detection names the secondary again.
+     */
+    override fun autoDetectedSecondaryLanguage(): String? {
+        if (dictionaryLanguageOrNull == null || !secondaryVerdictFresh) return null
+        val next = currentLanguage
+        if (next == dictionaryLanguage) return null
+        val pair = detectionPair() ?: return null
+        return next.takeIf { it in pair && it == config?.active_secondary_language }
+    }
+
+    /** A new input session: Auto-Detect's verdict from the previous one no longer counts. */
+    override fun onInputSessionChanged() {
+        secondaryVerdictFresh = false
     }
 
     /**
@@ -1320,6 +1431,7 @@ class WordPredictor : Predictor {
                 // primary dictionary and its disabled / custom words stay.
                 switchNextWordLanguage(detected)
             }
+            if (detected != null && detected in chosen) noteDetectionVerdict(detected)
             // The manager's answer stands, a "no switch" (null) included: the legacy detector
             // below used to run after it at a fixed threshold over all six of its languages and
             // could switch anyway (pre-tag review 2026-11-25 S7).
@@ -1333,13 +1445,14 @@ class WordPredictor : Predictor {
         if (!LanguageDetector.canChooseBetween(chosen)) return
         val result = detector.detectLanguageFromWordsWithConfidence(recentWords, chosen) ?: return
         val detectedLanguage = result.language
-        if (result.confidence >= sensitivity && detectedLanguage != currentLanguage && detectedLanguage in chosen) {
-            if (bigramModel?.isLanguageSupported(detectedLanguage) == true) {
+        if (result.confidence >= sensitivity && detectedLanguage in chosen) {
+            if (detectedLanguage != currentLanguage && bigramModel?.isLanguageSupported(detectedLanguage) == true) {
                 if (BuildConfig.ENABLE_VERBOSE_LOGGING) {
                     Log.d(TAG, "Auto-detected language change from $currentLanguage to $detectedLanguage")
                 }
                 switchNextWordLanguage(detectedLanguage)
             }
+            noteDetectionVerdict(detectedLanguage)
         }
     }
 
@@ -1362,6 +1475,7 @@ class WordPredictor : Predictor {
      */
     override fun clearContext() {
         invalidateExactLearningCommit()
+        secondaryVerdictFresh = false
         recentWords.clear()
         lastRecordedCommit = null
     }
@@ -1404,12 +1518,17 @@ class WordPredictor : Predictor {
         invalidateExactLearningCommit()
         val normalized = word.lowercase().trim()
         val inWindow = recentWords.isNotEmpty() && recentWords.last() == normalized
-        // Window cleared by a sentence boundary since the commit: undo from the one-slot
-        // record, but only for the same language store (a switch drops the pairing).
-        val recorded = lastRecordedCommit?.takeIf { it.word == normalized && it.language == currentLanguage }
-        val window: List<String> = when {
-            inWindow -> recentWords.takeLast(LearningGate.CONTEXT_WINDOW)
-            recorded != null -> recorded.window
+        // Window cleared since the commit (a sentence boundary, or the detected language switch
+        // this very commit triggered): undo from the one-slot record, in the store the commit
+        // wrote to. Only while the same primary dictionary is loaded, so the learnability
+        // predicate below is the one the record used.
+        val recorded = lastRecordedCommit?.takeIf { it.word == normalized && it.dictionaryLanguage == dictionaryLanguage }
+        // The store: the active one (null) for the live window, the commit's own for the record.
+        val window: List<String>
+        val storeLanguage: String?
+        when {
+            inWindow -> { window = recentWords.takeLast(LearningGate.CONTEXT_WINDOW); storeLanguage = null }
+            recorded != null -> { window = recorded.window; storeLanguage = recorded.language }
             else -> return
         }
         lastRecordedCommit = null
@@ -1418,7 +1537,9 @@ class WordPredictor : Predictor {
         val contextAware = config?.context_aware_predictions_enabled ?: false
         if (LearningGate.canLearnContext(master, contextAware) && window.size >= 2) {
             // Same predicate as the record, so a skipped (unlearnable) n-gram is not decremented.
-            contextModel?.rollbackCommit(window, learnableWordPolicy::isLearnable)
+            // Before 2026-11-26 a record from another next-word language was dropped: the wrong
+            // word whose commit made Auto-Detect switch kept its pair in the old language's store.
+            contextModel?.rollbackCommit(window, learnableWordPolicy::isLearnable, storeLanguage)
         }
         val personalized = config?.personalized_learning_enabled ?: false
         if (LearningGate.canLearnPersonalization(master, personalized)) {
@@ -1436,6 +1557,7 @@ class WordPredictor : Predictor {
      */
     override fun onSentenceBoundary() {
         invalidateExactLearningCommit()
+        secondaryVerdictFresh = false
         recentWords.clear()
     }
 
@@ -1515,7 +1637,46 @@ class WordPredictor : Predictor {
             config?.context_aware_predictions_enabled ?: false
         )
         if (!canUse) return emptyList()
-        return contextModel?.getNextWordCandidates(contextWords, maxResults) ?: emptyList()
+        val candidates = contextModel?.getNextWordCandidates(contextWords, maxResults) ?: return emptyList()
+        val disabled = detectedNextWordDisabled() ?: return candidates
+        return candidates.filterNot { isDisabledIn(disabled, it.word) }
+    }
+
+    /**
+     * The disabled words of the Auto-Detect NEXT-WORD language when it is not the loaded
+     * dictionary's language, else null (2026-11-26). An Auto-Detect switch moves only the
+     * next-word language ([switchNextWordLanguage]); [isWordDisabled], which the next-word filter
+     * (`NextWordPredictor.candidatesFor`) asks, keeps reading the PRIMARY dictionary's list, so a
+     * word disabled in the detected language's Dictionary Manager tab came back as its next-word
+     * continuation. Back on the primary this is null and that filter alone applies, as before.
+     *
+     * The loaded secondary's list ([secondaryDisabledWords], published with its index) when the
+     * detected language is the secondary; otherwise (its index not published yet) the stored list,
+     * read once per language and kept until the next switch or Dictionary Manager reload.
+     */
+    private fun detectedNextWordDisabled(): Set<String>? {
+        val language = currentLanguage
+        if (language == dictionaryLanguage) return null
+        if (language == secondaryLanguageCode) return secondaryDisabledWords
+        detectedDisabledCache?.let { (cachedLanguage, words) -> if (cachedLanguage == language) return words }
+        return readSecondaryDisabledWords(language).also { detectedDisabledCache = language to it }
+    }
+
+    /** [detectedNextWordDisabled]'s stored-list read for a language whose index is not loaded. */
+    @Volatile
+    private var detectedDisabledCache: Pair<String, Set<String>>? = null
+
+    /**
+     * [word] (lowercased) or its apostrophe-free key is in [disabled]: every bundled dictionary
+     * stores a contraction apostrophe-free (`geht's` under `gehts`), and Dictionary Manager disables
+     * that key, as `NextWordPredictor.candidatesFor` checks for the primary.
+     */
+    private fun isDisabledIn(disabled: Set<String>, word: String): Boolean {
+        if (disabled.isEmpty()) return false
+        val lower = word.lowercase()
+        if (lower in disabled) return true
+        val key = NextWordPredictor.apostropheFreeKey(lower) ?: return false
+        return key in disabled
     }
 
     /**
@@ -1547,8 +1708,10 @@ class WordPredictor : Predictor {
         val seed = bigramModel?.getPredictions(prevWord, maxResults) ?: emptyList()
         // D2: the model spells Germany's way (`straße`); with Swiss spelling the dictionary the
         // seed is checked against does not, so the continuations are shown respelled, a twin once.
-        if (!primarySwissSpelling) return seed
-        return SwissSpelling.foldDistinct(seed, { it.word }) { c, word -> c.copy(word = word) }
+        val shown = if (!primarySwissSpelling) seed else SwissSpelling.foldDistinct(seed, { it.word }) { c, word -> c.copy(word = word) }
+        // A detected next-word language's own disabled words (2026-11-26, [detectedNextWordDisabled]).
+        val disabled = detectedNextWordDisabled() ?: return shown
+        return shown.filterNot { isDisabledIn(disabled, it.word) }
     }
 
     /**
@@ -3549,6 +3712,7 @@ class WordPredictor : Predictor {
     internal fun autoCorrect(
         typedWord: String,
         tuning: AutocorrectTuning,
+        secondaryBypassMargin: Int = SECONDARY_BYPASS_MARGIN_STEPS,
         probe: ((ChannelProbe) -> Unit)? = null,
     ): String {
         if (config?.autocorrect_enabled != true || typedWord.isEmpty()) {
@@ -3613,8 +3777,23 @@ class WordPredictor : Predictor {
         // (pre-tag review 2026-11-25): with Spanish beside English, typed `como` became `come`, and
         // with English beside German `fuss` became `fuß`, because only the primary list was
         // consulted here. A word disabled in either language falls through and corrects.
-        if (isInSecondaryLexiconExactly(lowerTypedWord) && !isSecondaryWordDisabled(lowerTypedWord)) {
-            return typedWord
+        //
+        // Not when the primary-language correction is far more common (2026-11-26,
+        // docs/eval/2026-11-26-secondary-bypass-gate.md): the German and Spanish lists are built from
+        // web text and carry English misspellings as rare entries (en+de `thier`, `wich`), which the
+        // all-or-nothing bypass left uncorrected. [secondaryBypassMargin] = [Int.MAX_VALUE] always
+        // bypasses, [Int.MIN_VALUE] never does (the rest of autocorrect decides).
+        if (secondaryBypassMargin != Int.MIN_VALUE &&
+            isInSecondaryLexiconExactly(lowerTypedWord) && !isSecondaryWordDisabled(lowerTypedWord)
+        ) {
+            if (secondaryBypassMargin == Int.MAX_VALUE) return typedWord
+            val primaryCorrection = autoCorrect(typedWord, tuning, Int.MIN_VALUE, probe)
+            if (primaryCorrection.equals(typedWord, ignoreCase = true)) return typedWord
+            return if (secondaryWordYields(lowerTypedWord, primaryCorrection, secondaryBypassMargin)) {
+                primaryCorrection
+            } else {
+                typedWord
+            }
         }
 
         val dict = dictionary.get()

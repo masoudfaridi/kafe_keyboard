@@ -1228,6 +1228,7 @@
     <string name="text_action_no_selection">Niciun text selectat pentru %1$s</string>
     <string name="multilang_pack_imported_toast">Pachet de limbă importat: %1$s</string>
     <string name="multilang_pack_deleted">Pachet de limbă șters</string>
+    <string name="multilang_pack_busy">Un alt import sau o altă eliminare a unui pachet de limbă este încă în curs. Încercați din nou după ce se termină.</string>
     <string name="multilang_secondary_none_available">Nu există dicționare suplimentare disponibile</string>
     <string name="multilang_secondary_desc">Activează predicțiile bilingve (de ex. română + engleză)</string>
     <plurals name="multilang_pack_imported_status">
@@ -1501,6 +1502,7 @@
     <string name="dictionary_backup_apply_failed">Aplicarea importului de dicționar a eșuat:\n\n%1$s</string>
     <string name="gif_import_status_already_installed">Pachetul „%1$s” este deja instalat</string>
     <string name="gif_toast_pack_imported">Pachet GIF importat: %1$s</string>
+    <string name="gif_import_already_running">Un alt import al unui pachet GIF este încă în curs. Încercați din nou după ce se termină.</string>
     <string name="gif_replace_dialog_title">Pachet deja instalat</string>
     <string name="gif_replace_dialog_body">„%1$s” este deja instalat. Îl înlocuiți cu fișierul selectat? (Reimportarea unui pachet reconstruit îi actualizează GIF-urile.)</string>
     <string name="gif_replace_dialog_confirm">Înlocuiește</string>

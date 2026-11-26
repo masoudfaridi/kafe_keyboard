@@ -5,6 +5,7 @@ import tribixbite.cleverkeys.LanguagePrefs
 import tribixbite.cleverkeys.R
 import tribixbite.cleverkeys.SettingsActivity
 import tribixbite.cleverkeys.SwissSpelling
+import tribixbite.cleverkeys.LayoutLanguageBinding
 import tribixbite.cleverkeys.langpack.LanguagePackManifest
 import tribixbite.cleverkeys.langpack.NoticeTextLayout
 import tribixbite.cleverkeys.langpack.PackAttributionDisplay
@@ -73,6 +74,30 @@ import androidx.compose.ui.unit.sp
  * while loading AND when the pack kept no notice; [loaded] tells the two apart.
  */
 private data class PackNoticeViewer(val packName: String, val loaded: Boolean, val text: String?)
+
+/**
+ * Whether Settings shows a language PAIR (pure, `MultiLanguagePairTest`). The secondary block —
+ * its note, weight and the Auto-Detect row — used to show for any stored secondary other than
+ * "none", so a blank one or one equal to the primary (the primary changed to the old secondary;
+ * the dropdown, which never lists the primary, then shows "None") showed "Auto-Detect is not
+ * available for this pair" with no pair (todo 2026-11-26).
+ */
+internal object MultiLanguagePair {
+    /**
+     * The secondary language that forms a pair with [primary], or null when there is none. The
+     * blank/"none" rule is the shared resolver's ([LayoutLanguageBinding.resolve], as for
+     * `LanguagePrefs.userLanguages`); this adds only that a language is no pair with itself.
+     * Called inside the Multi-Language block, so Multi-Language counts as on.
+     */
+    fun chosenSecondary(primary: String, secondary: String?): String? =
+        LayoutLanguageBinding.resolve(
+            bindings = emptyList(),
+            currentIndex = 0,
+            userPrimary = primary,
+            multilangEnabled = true,
+            userSecondary = secondary?.trim(),
+        ).secondary?.takeIf { it.isNotBlank() && it != primary }
+}
 
 @Composable
 internal fun SettingsActivity.MultiLanguageSection() {
@@ -183,7 +208,7 @@ internal fun SettingsActivity.MultiLanguageSection() {
                         }
                     )
 
-                    if (secondaryLanguage != "none") {
+                    if (MultiLanguagePair.chosenSecondary(primaryLanguage, secondaryLanguage) != null) {
                         Text(
                             text = stringResource(R.string.multilang_secondary_note),
                             fontSize = 11.sp,

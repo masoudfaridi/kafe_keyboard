@@ -8,8 +8,6 @@ import android.util.Log
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 
 /**
@@ -17,6 +15,48 @@ import kotlinx.coroutines.withContext
  * "Error loading words" line).
  */
 class DictionaryLoadException(message: String, cause: Throwable? = null) : Exception(message, cause)
+
+/**
+ * Dictionary Manager's German list under Swiss spelling ([SwissSpelling], D2 follow-up
+ * 2026-11-26). The keyboard respells every German lexicon at load; the manager listed the shipped
+ * `straße`, words the keyboard never offers. Pure (`DictionaryListSpellingTest`).
+ */
+internal object DictionaryListSpelling {
+
+    /**
+     * [words] (one language's shipped list, best first) with every `ß` written `ss`. Twins
+     * (`Maße`/`Masse`) become one row at the first one's position with the higher frequency;
+     * the row is enabled only when every twin is and its `ss` spelling is not in [disabled]
+     * (the keyboard's [SwissSpelling.foldDisabled] disables `masse` for a disabled `Maße`).
+     */
+    fun respell(words: List<DictionaryWord>, disabled: Set<String>): List<DictionaryWord> {
+        val foldedDisabled = SwissSpelling.foldDisabled(true, disabled)
+        val merged = LinkedHashMap<String, DictionaryWord>(words.size * 2)
+        for (row in words) {
+            val folded = SwissSpelling.fold(row.word)
+            val enabled = row.enabled && folded !in foldedDisabled &&
+                folded.lowercase(java.util.Locale.ROOT) !in foldedDisabled
+            val existing = merged[folded]
+            merged[folded] = if (existing == null) {
+                if (folded === row.word && enabled == row.enabled) row else row.copy(word = folded, enabled = enabled)
+            } else {
+                existing.copy(
+                    frequency = maxOf(existing.frequency, row.frequency),
+                    enabled = existing.enabled && enabled,
+                )
+            }
+        }
+        return merged.values.toList()
+    }
+
+    /**
+     * The stored entries to remove when the row [word] is enabled under Swiss spelling: [word]
+     * itself and every entry of [disabled] that respells to it (`Maße` for the row `Masse`),
+     * or the row would stay disabled through its `ß` spelling.
+     */
+    fun spellingsToEnable(word: String, disabled: Set<String>): Set<String> =
+        disabled.filterTo(linkedSetOf(word)) { SwissSpelling.fold(it).equals(word, ignoreCase = true) }
+}
 
 /**
  * Interface for dictionary data sources
@@ -55,6 +95,16 @@ class MainDictionarySource(
     private val languageCode: String = "en"
 ) : DictionaryDataSource {
 
+    /**
+     * This list is shown in Swiss spelling: the stored switch is on and the language is German.
+     * Read from the stored preference ([LanguagePrefs.germanSwissSpelling]): Dictionary Manager
+     * may run without the keyboard, whose Config alone is kept current.
+     */
+    private val swissSpelling: Boolean = SwissSpelling.appliesTo(
+        LanguagePrefs.germanSwissSpelling(DirectBootAwarePreferences.get_shared_preferences(context)),
+        languageCode,
+    )
+
     // Instance-level cache references (point to shared static cache when language matches)
     private var cachedWords: List<DictionaryWord>? = null
     // Prefix index for fast search: prefix -> list of matching words
@@ -65,12 +115,16 @@ class MainDictionarySource(
         // This avoids re-parsing the 98k binary dictionary every time
         // the user opens Dictionary Manager or switches tabs.
         synchronized(Companion) {
-            sharedCache[languageCode]?.let { cached ->
+            cachedFor()?.let { cached ->
                 cachedWords = cached.words
                 prefixIndex = cached.prefixIndex
             }
         }
     }
+
+    /** The shared cache entry for this language in this spelling, or null. Caller holds the lock. */
+    private fun cachedFor(): LanguageCache? =
+        sharedCache[languageCode]?.takeIf { it.swissSpelling == swissSpelling }
 
     override suspend fun getAllWords(): List<DictionaryWord> = withContext(Dispatchers.IO) {
         Log.d(TAG, "getAllWords() called for language: $languageCode")
@@ -79,16 +133,18 @@ class MainDictionarySource(
         // plain var that a concurrent load on another IO thread may replace.
         cachedWords?.let { cached ->
             Log.d(TAG, "Returning ${cached.size} cached words for $languageCode")
+            loadLock.markLoaded(languageCode)
             return@withContext cached
         }
 
         // Double-check shared cache: another fragment for this language may have
         // finished loading while we were waiting for the IO dispatcher
         synchronized(Companion) {
-            sharedCache[languageCode]?.let { cached ->
+            cachedFor()?.let { cached ->
                 cachedWords = cached.words
                 prefixIndex = cached.prefixIndex
                 Log.d(TAG, "Returning ${cached.words.size} words from shared cache for $languageCode")
+                loadLock.markLoaded(languageCode)
                 return@withContext cached.words
             }
         }
@@ -96,13 +152,14 @@ class MainDictionarySource(
         // One language parses at a time (2026-11-18 OOM): every language tab is created at once
         // and used to parse its dictionary in parallel, so the peak was the sum of all of them,
         // on top of the keyboard's own heap in the same process. A tab that waited here for the
-        // same language finds it cached.
-        loadLock.withLock {
+        // same language finds it cached. The turn goes by tab order (2026-11-26): the primary's
+        // list no longer waits for a secondary that happened to ask first ([DictionaryLoadGate]).
+        loadLock.withTurn(languageCode) {
             synchronized(Companion) {
-                sharedCache[languageCode]?.let { cached ->
+                cachedFor()?.let { cached ->
                     cachedWords = cached.words
                     prefixIndex = cached.prefixIndex
-                    return@withLock cached.words
+                    return@withTurn cached.words
                 }
             }
             loadWithMemoryRetry()
@@ -111,7 +168,7 @@ class MainDictionarySource(
 
     /**
      * Parse this language's dictionary (pack, bundled binary or JSON) and cache it. Runs under
-     * [loadLock]: one language at a time.
+     * [loadLock]: one language at a time, in tab order.
      */
     private fun loadUncached(): List<DictionaryWord> {
         try {
@@ -133,7 +190,7 @@ class MainDictionarySource(
                         val loaded = loadBinaryDictionaryFromFile(packPath, words, disabled)
                         if (loaded) {
                             Log.d(TAG, "Loaded ${words.size} words from language pack: $languageCode")
-                            val sorted = words.sorted()
+                            val sorted = displayList(words, disabled)
                             publish(sorted)
                             return sorted
                         }
@@ -148,7 +205,7 @@ class MainDictionarySource(
                     val loaded = loadBinaryDictionary(binFilename, words, disabled)
                     if (loaded) {
                         Log.d(TAG, "Loaded ${words.size} words from bundled binary dictionary: $binFilename")
-                        val sorted = words.sorted()
+                        val sorted = displayList(words, disabled)
                         publish(sorted)
                         return sorted
                     }
@@ -189,7 +246,7 @@ class MainDictionarySource(
                 return emptyList()
             }
 
-            val sorted = words.sorted()
+            val sorted = displayList(words, disabled)
             publish(sorted)
             return sorted
         } catch (e: Exception) {
@@ -230,6 +287,13 @@ class MainDictionarySource(
     }
 
     /**
+     * [words] in the spelling the keyboard serves, sorted for display: respelled when
+     * [swissSpelling] ([DictionaryListSpelling]), as-is otherwise.
+     */
+    private fun displayList(words: List<DictionaryWord>, disabled: Set<String>): List<DictionaryWord> =
+        (if (swissSpelling) DictionaryListSpelling.respell(words, disabled) else words).sorted()
+
+    /**
      * Build prefix index for fast word search.
      * Creates mapping from prefixes (1-3 chars) to lists of matching words.
      * Performance: Reduces 98k linear search to ~100-500 comparisons.
@@ -252,7 +316,7 @@ class MainDictionarySource(
 
         // Persist to shared static cache for cross-instance reuse
         synchronized(Companion) {
-            sharedCache[languageCode] = LanguageCache(words, index)
+            sharedCache[languageCode] = LanguageCache(words, index, swissSpelling)
         }
     }
 
@@ -297,7 +361,15 @@ class MainDictionarySource(
     }
 
     override suspend fun toggleWord(word: String, enabled: Boolean) {
-        disabledSource.setWordEnabled(word, enabled)
+        if (enabled && swissSpelling) {
+            // A Swiss row may be disabled through its stored `ß` spelling (disabled before the
+            // switch was turned on): enable every spelling that respells to it.
+            for (spelling in DictionaryListSpelling.spellingsToEnable(word, disabledSource.getDisabledWords())) {
+                disabledSource.setWordEnabled(spelling, true)
+            }
+        } else {
+            disabledSource.setWordEnabled(word, enabled)
+        }
         // Update cached entries in-place so subsequent getAllWords()/searchWords()
         // reflect the new enabled state without a full 98k-word reload
         cachedWords?.forEach { dw ->
@@ -410,18 +482,30 @@ class MainDictionarySource(
         // Thread-safe: synchronized on Companion in init{} and buildPrefixIndex().
         private data class LanguageCache(
             val words: List<DictionaryWord>,
-            val prefixIndex: Map<String, List<DictionaryWord>>
+            val prefixIndex: Map<String, List<DictionaryWord>>,
+            /** Built in Swiss spelling; an entry in the other spelling is a miss (and is replaced). */
+            val swissSpelling: Boolean,
         )
         private val sharedCache = mutableMapOf<String, LanguageCache>()
 
-        /** Serializes dictionary parsing across instances and languages ([getAllWords]). */
-        private val loadLock = Mutex()
+        /** Serializes dictionary parsing across instances and languages, in tab order ([getAllWords]). */
+        private val loadLock = DictionaryLoadGate()
+
+        /**
+         * The order Dictionary Manager's tabs show their languages in ([DictionaryTabPlan.loadOrder]);
+         * a language already cached is not waited for. Call before the tabs are created.
+         */
+        fun prioritize(languages: List<String>) {
+            val cached = synchronized(this) { sharedCache.keys.toSet() }
+            loadLock.prioritize(languages, cached)
+        }
 
         /** Invalidate shared cache for all languages. */
         fun invalidateCache() {
             synchronized(this) {
                 sharedCache.clear()
             }
+            loadLock.clear()
         }
 
         /** Invalidate shared cache for a specific language. */

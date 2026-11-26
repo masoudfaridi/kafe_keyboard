@@ -1199,6 +1199,7 @@
     <string name="text_action_no_selection">Geen tekst geselecteerd voor %1$s</string>
     <string name="multilang_pack_imported_toast">Taalpakket geïmporteerd: %1$s</string>
     <string name="multilang_pack_deleted">Taalpakket verwijderd</string>
+    <string name="multilang_pack_busy">Er loopt nog een andere import of verwijdering van een taalpakket. Probeer het opnieuw als die klaar is.</string>
     <string name="multilang_secondary_none_available">Geen extra woordenboeken beschikbaar</string>
     <string name="multilang_secondary_desc">Tweetalige voorspellingen inschakelen (bijv. Nederlands + Spaans)</string>
     <plurals name="multilang_pack_imported_status">
@@ -1461,6 +1462,7 @@
     <string name="dictionary_backup_apply_failed">Kon woordenboekimport niet toepassen:\n\n%1$s</string>
     <string name="gif_import_status_already_installed">Pakket \'%1$s\' al geïnstalleerd</string>
     <string name="gif_toast_pack_imported">GIF-pakket geïmporteerd: %1$s</string>
+    <string name="gif_import_already_running">Er loopt nog een andere import van een GIF-pakket. Probeer het opnieuw als die klaar is.</string>
     <string name="gif_replace_dialog_title">Pakket al geïnstalleerd</string>
     <string name="gif_replace_dialog_body">\'%1$s\' is al geïnstalleerd. Vervangen door het geselecteerde bestand? (Een opnieuw gebouwd pakket opnieuw importeren werkt de GIF\'s bij.)</string>
     <string name="gif_replace_dialog_confirm">Vervangen</string>

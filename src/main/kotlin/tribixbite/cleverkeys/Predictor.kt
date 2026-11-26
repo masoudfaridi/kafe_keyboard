@@ -144,6 +144,25 @@ interface Predictor {
         commit: LearningCommit, replacement: String, fieldAllowsPersonalizedLearning: Boolean = true
     ): LearningCommitReplacement = LearningCommitReplacement.Invalidated
 
+    /**
+     * Undo the exact latest commit's learn once, restoring the learn window to what it was
+     * before it, when [commit] is still the newest commit and no store changed since. True when
+     * the learn was reversed; false (nothing touched) for any other handle.
+     */
+    fun rollbackLearningCommit(
+        commit: LearningCommit, fieldAllowsPersonalizedLearning: Boolean = true
+    ): Boolean = false
+
+    /**
+     * The secondary language Auto-Detect has actually switched the NEXT-WORD language to, or
+     * null while the next-word language is the loaded primary's (or detection is not running).
+     * Decides which personal-dictionary list a word added from the bar goes to.
+     */
+    fun autoDetectedSecondaryLanguage(): String? = null
+
+    /** A new input session started (a new field, or the app restarted its input). */
+    fun onInputSessionChanged() {}
+
     /** Undo a learn performed by [addWordToContext] (autocorrect reverted by the user). */
     fun rollbackCommittedWord(word: String, fieldAllowsPersonalizedLearning: Boolean = true)
 

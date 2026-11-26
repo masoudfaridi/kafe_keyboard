@@ -1201,6 +1201,7 @@
     <string name="text_action_no_selection">Nenhum texto selecionado para %1$s</string>
     <string name="multilang_pack_imported_toast">Pacote de idioma importado: %1$s</string>
     <string name="multilang_pack_deleted">Pacote de idioma excluído</string>
+    <string name="multilang_pack_busy">Outra importação ou remoção de pacote de idioma ainda está em andamento. Tente novamente quando terminar.</string>
     <string name="multilang_secondary_none_available">Nenhum dicionário adicional disponível</string>
     <string name="multilang_secondary_desc">Ativar previsões bilíngues (ex.: inglês + espanhol)</string>
     <plurals name="multilang_pack_imported_status">
@@ -1474,6 +1475,7 @@
     <string name="dictionary_backup_apply_failed">Falha ao aplicar a importação do dicionário:\n\n%1$s</string>
     <string name="gif_import_status_already_installed">O pacote “%1$s” já está instalado</string>
     <string name="gif_toast_pack_imported">Pacote de GIF importado: %1$s</string>
+    <string name="gif_import_already_running">Outra importação de pacote de GIF ainda está em andamento. Tente novamente quando terminar.</string>
     <string name="gif_replace_dialog_title">Pacote já instalado</string>
     <string name="gif_replace_dialog_body">“%1$s” já está instalado. Substituí-lo pelo arquivo selecionado? (Reimportar um pacote reconstruído atualiza os GIFs.)</string>
     <string name="gif_replace_dialog_confirm">Substituir</string>

@@ -1237,6 +1237,7 @@
     <string name="text_action_no_selection">متنی برای %1$s انتخاب نشده است</string>
     <string name="multilang_pack_imported_toast">بستهٔ زبان وارد شد: %1$s</string>
     <string name="multilang_pack_deleted">بستهٔ زبان حذف شد</string>
+    <string name="multilang_pack_busy">وارد کردن یا حذف یک بستهٔ زبان دیگر هنوز در حال انجام است. پس از پایان آن دوباره امتحان کنید.</string>
     <string name="multilang_secondary_none_available">واژه‌نامهٔ دیگری در دسترس نیست</string>
     <string name="multilang_secondary_desc">فعال‌سازی پیش‌بینی‌های دوزبانه (مثلاً فارسی + انگلیسی)</string>
     <plurals name="multilang_pack_imported_status">
@@ -1499,6 +1500,7 @@
     <string name="dictionary_backup_apply_failed">اعمال واژه‌نامهٔ واردشده ناموفق بود:\n\n%1$s</string>
     <string name="gif_import_status_already_installed">بستهٔ «%1$s» از قبل نصب شده است</string>
     <string name="gif_toast_pack_imported">بستهٔ گیف وارد شد: %1$s</string>
+    <string name="gif_import_already_running">وارد کردن یک بستهٔ گیف دیگر هنوز در حال انجام است. پس از پایان آن دوباره امتحان کنید.</string>
     <string name="gif_replace_dialog_title">بسته از قبل نصب شده است</string>
     <string name="gif_replace_dialog_body">«%1$s» از قبل نصب شده است. با فایل انتخاب‌شده جایگزین شود؟ (وارد کردن دوبارهٔ بسته‌ای که از نو ساخته شده، گیف‌های آن را به‌روز می‌کند.)</string>
     <string name="gif_replace_dialog_confirm">جایگزینی</string>

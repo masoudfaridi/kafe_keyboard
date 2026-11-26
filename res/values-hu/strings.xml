@@ -1205,6 +1205,7 @@
     <string name="text_action_no_selection">Nincs kijelölt szöveg ehhez: %1$s</string>
     <string name="multilang_pack_imported_toast">Nyelvi csomag importálva: %1$s</string>
     <string name="multilang_pack_deleted">Nyelvi csomag törölve</string>
+    <string name="multilang_pack_busy">Egy másik nyelvi csomag importálása vagy eltávolítása még folyamatban van. Próbálja újra, ha befejeződött.</string>
     <string name="multilang_secondary_none_available">Nincsenek további elérhető szótárak</string>
     <string name="multilang_secondary_desc">Kétnyelvű előrejelzések engedélyezése (pl. angol + spanyol)</string>
     <plurals name="multilang_pack_imported_status">
@@ -1467,6 +1468,7 @@
     <string name="dictionary_backup_apply_failed">Nem sikerült alkalmazni a szótárimportálást:\n\n%1$s</string>
     <string name="gif_import_status_already_installed">A(z) „%1$s” csomag már telepítve van</string>
     <string name="gif_toast_pack_imported">GIF-csomag importálva: %1$s</string>
+    <string name="gif_import_already_running">Egy másik GIF-csomag importálása még folyamatban van. Próbálja újra, ha befejeződött.</string>
     <string name="gif_replace_dialog_title">A csomag már telepítve van</string>
     <string name="gif_replace_dialog_body">A(z) „%1$s” már telepítve van. Lecseréli a kiválasztott fájlra? (Egy újraépített csomag ismételt importálása frissíti a GIF-jeit.)</string>
     <string name="gif_replace_dialog_confirm">Csere</string>

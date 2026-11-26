@@ -32,7 +32,9 @@ object KafeLanguage {
     const val ENGLISH = "en"
     /** Turkish: CleverKeys ships a full Turkish translation (res/values-tr). */
     const val TURKISH = "tr"
-    val SUPPORTED = listOf(PERSIAN, ENGLISH, TURKISH)
+    /** Arabic: Kafe's own translation (res-kafe/values-ar). */
+    const val ARABIC = "ar"
+    val SUPPORTED = listOf(PERSIAN, ENGLISH, ARABIC, TURKISH)
 
     private const val TAG = "KafeLanguage"
     private const val PREFS = "kafe_language"
@@ -99,6 +101,7 @@ object KafeLanguage {
     /** The localized name of [language], written in that language. */
     fun displayName(language: String): String = when (language) {
         PERSIAN -> "فارسی"
+        ARABIC -> "العربية"
         TURKISH -> "Türkçe"
         else -> "English"
     }

@@ -203,24 +203,28 @@ object KafeEditToolbar {
     /** Follows the app language ([KafeLanguage]), which on Android 13+ differs from the system's. */
     private var context: android.content.Context? = null
 
-    private fun t(fa: String, en: String): String {
+    private fun t(fa: String, en: String, tr: String = en): String {
         val lang = context?.let { KafeLanguage.current(it) } ?: Locale.getDefault().language
-        return if (lang == KafeLanguage.PERSIAN) fa else en
+        return when (lang) {
+            KafeLanguage.PERSIAN -> fa
+            KafeLanguage.TURKISH -> tr
+            else -> en
+        }
     }
 
     private fun label(action: Action): String = when (action) {
-        Action.SELECT_ALL -> t("همه", "All")
-        Action.COPY -> t("کپی", "Copy")
+        Action.SELECT_ALL -> t("همه", "All", "Tümü")
+        Action.COPY -> t("کپی", "Copy", "Kopyala")
         Action.LEFT -> "◀"
         Action.RIGHT -> "▶"
-        Action.CUT -> t("برش", "Cut")
-        Action.PASTE -> t("چسباندن", "Paste")
+        Action.CUT -> t("برش", "Cut", "Kes")
+        Action.PASTE -> t("چسباندن", "Paste", "Yapıştır")
     }
 
     private fun description(action: Action): String = when (action) {
-        Action.SELECT_ALL -> t("انتخاب همه", "Select all")
-        Action.LEFT -> t("حرکت کرسر به چپ", "Move cursor left")
-        Action.RIGHT -> t("حرکت کرسر به راست", "Move cursor right")
+        Action.SELECT_ALL -> t("انتخاب همه", "Select all", "Tümünü seç")
+        Action.LEFT -> t("حرکت کرسر به چپ", "Move cursor left", "İmleci sola taşı")
+        Action.RIGHT -> t("حرکت کرسر به راست", "Move cursor right", "İmleci sağa taşı")
         else -> label(action)
     }
 }

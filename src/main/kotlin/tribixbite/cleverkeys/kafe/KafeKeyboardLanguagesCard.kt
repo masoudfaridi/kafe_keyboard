@@ -43,8 +43,12 @@ import androidx.compose.ui.unit.sp
 @Composable
 fun KafeKeyboardLanguagesCard(titleColor: Color, textColor: Color, modifier: Modifier = Modifier) {
     val context = LocalContext.current
-    val persianUi = remember { KafeLanguage.current(context) == KafeLanguage.PERSIAN }
-    fun t(fa: String, en: String) = if (persianUi) fa else en
+    val uiLang = remember { KafeLanguage.current(context) }
+    fun t(fa: String, en: String, tr: String = en) = when (uiLang) {
+        KafeLanguage.PERSIAN -> fa
+        KafeLanguage.TURKISH -> tr
+        else -> en
+    }
 
     var enabled by remember { mutableStateOf(KafeKeyboardLanguages.enabled(context)) }
     var busy by remember { mutableStateOf(false) }
@@ -68,13 +72,14 @@ fun KafeKeyboardLanguagesCard(titleColor: Color, textColor: Color, modifier: Mod
     ) {
         Column(Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
             Text(
-                t("زبان‌های صفحه‌کلید", "Keyboard languages"),
+                t("زبان‌های صفحه‌کلید", "Keyboard languages", "Klavye dilleri"),
                 color = titleColor, fontSize = 17.sp, fontWeight = FontWeight.Bold
             )
             Text(
                 t(
                     "روی Space بکشید: بالا English، پایین فارسی، بالا-راست کُردی، پایین-چپ عربی، پایین-راست ترکی.",
-                    "Swipe on the spacebar: up English, down Persian, up-right Kurdish, down-left Arabic, down-right Turkish."
+                    "Swipe on the spacebar: up English, down Persian, up-right Kurdish, down-left Arabic, down-right Turkish.",
+                    "Boşluk tuşunda kaydırın: yukarı İngilizce, aşağı Farsça, sağ üst Kürtçe, sol alt Arapça, sağ alt Türkçe."
                 ),
                 color = textColor, fontSize = 13.sp
             )
@@ -84,7 +89,7 @@ fun KafeKeyboardLanguagesCard(titleColor: Color, textColor: Color, modifier: Mod
             ) {
                 LanguageCheck("English", checked = true, enabled = false, textColor) {}
                 for (lang in KafeKeyboardLanguages.Language.values()) {
-                    LanguageCheck(if (persianUi) lang.faName else lang.enName, lang in enabled, enabled = !busy, textColor) { on ->
+                    LanguageCheck(t(lang.faName, lang.enName, lang.trName), lang in enabled, enabled = !busy, textColor) { on ->
                         busy = true
                         enabled = if (on) enabled + lang else enabled - lang
                         KafeKeyboardLanguages.setEnabled(context, lang, on) {
@@ -99,8 +104,9 @@ fun KafeKeyboardLanguagesCard(titleColor: Color, textColor: Color, modifier: Mod
             if (enabled.any { !it.hasDictionary }) {
                 Text(
                     t(
-                        "کُردی و عربی فعلاً پیشنهاد کلمه و swipe ندارند.",
-                        "Kurdish and Arabic have no word suggestions or swipe yet."
+                        "کُردی فعلاً پیشنهاد کلمه و swipe ندارد.",
+                        "Kurdish has no word suggestions or swipe yet.",
+                        "Kürtçe için henüz kelime önerisi ve kaydırarak yazma yok."
                     ),
                     color = textColor, fontSize = 12.sp
                 )

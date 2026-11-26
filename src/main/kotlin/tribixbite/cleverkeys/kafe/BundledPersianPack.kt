@@ -62,8 +62,9 @@ object BundledPersianPack {
                 // launcher, which that migration's layout-list rewrite dropped.
                 try {
                     KafeKeyboardLanguages.restoreTicked(app)
+                    KafeKeyboardLanguages.installAllPacks(app)
                 } catch (e: Exception) {
-                    Log.e(TAG, "Restoring ticked languages failed", e)
+                    Log.e(TAG, "Restoring ticked languages / installing packs failed", e)
                 }
             }, "kafe-fa-pack").start()
         }

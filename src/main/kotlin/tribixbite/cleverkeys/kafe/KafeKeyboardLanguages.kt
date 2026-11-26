@@ -31,14 +31,17 @@ object KafeKeyboardLanguages {
         val faName: String,
         /** Full English name: card labels in the English UI. */
         val enName: String,
+        /** Full Turkish name: card labels in the Turkish UI. */
+        val trName: String,
         val packAsset: String?,
         val packVersion: Int,
         val bindLanguage: String?,
     ) {
-        PERSIAN("fa", "arab_pc_ir", "فارسی", "Persian", "kafe/langpack-fa.zip", 2, null), // XML declares fa
-        KURDISH("ckb", "arab_pc_ckb", "کُردی", "Kurdish", null, 0, "ckb"),
-        TURKISH("tr", "latn_qwerty_tr", "ترکی", "Turkish", "kafe/langpack-tr.zip", 2, "tr"),
-        ARABIC("ar", "arab_pc", "عربی", "Arabic", null, 0, "ar");
+        PERSIAN("fa", "arab_pc_ir", "فارسی", "Persian", "Farsça", "kafe/langpack-fa.zip", 2, null), // XML declares fa
+        KURDISH("ckb", "arab_pc_ckb", "کُردی", "Kurdish", "Kürtçe", null, 0, "ckb"),
+        TURKISH("tr", "latn_qwerty_tr", "ترکی", "Turkish", "Türkçe", "kafe/langpack-tr.zip", 2, "tr"),
+        // Pack: scripts/kafe/build_ar_langpack.py (wordfreq ar, 50,000 words).
+        ARABIC("ar", "arab_pc", "عربی", "Arabic", "Arapça", "kafe/langpack-ar.zip", 1, "ar");
 
         /** True when a dictionary (suggestions, swipe) ships for this language. */
         val hasDictionary: Boolean get() = packAsset != null
@@ -68,6 +71,24 @@ object KafeKeyboardLanguages {
         val set = p.getStringSet(KEY_TICKED, emptySet())!!.toMutableSet()
         if (on) set += language.code else set -= language.code
         p.edit().putStringSet(KEY_TICKED, set).apply()
+    }
+
+    private const val KEY_ALL_PACKS = "all_packs_v1"
+
+    /**
+     * Installs every bundled dictionary pack (fa, tr, ar) once, whether or not its language
+     * is ticked, so each language has its suggestions and swipe ready the moment it is turned
+     * on. Bump [KEY_ALL_PACKS] when a new pack ships. Blocking; call off the main thread.
+     */
+    fun installAllPacks(context: Context) {
+        val p = tickedPrefs(context)
+        if (p.getBoolean(KEY_ALL_PACKS, false)) return
+        var ok = true
+        for (lang in Language.values()) {
+            val asset = lang.packAsset ?: continue
+            ok = BundledPersianPack.installPack(context, asset, lang.code, lang.packVersion) && ok
+        }
+        if (ok) p.edit().putBoolean(KEY_ALL_PACKS, true).apply()
     }
 
     /**

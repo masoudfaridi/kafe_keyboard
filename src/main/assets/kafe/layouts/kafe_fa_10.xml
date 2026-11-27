@@ -5,6 +5,40 @@
      ک and گ sit side by side on row 3. Digits stay top-right on row 1, symbols in their
      Persian PC places, half-space on ت (top-left) and on the bottom row. -->
 <keyboard name="Persian 10 (Kafe)" script="persian" language="fa" bottom_row="false">
+  <!-- Fn layer. Paired letters swap (ص↔ض: the swipe-up letter becomes the main one and back);
+       every other letter gives a diacritic or a Persian punctuation mark:
+         row 1  ث َ  ق ِ  ف ُ  ه ّ  خ ً  ح ٍ  ج ٌ  چ ْ        (harakat, tanvin, tashdid, sukun)
+         row 2  ش «  س »  ب ء  ل ٔ (هٔ)  ت ة  ن .  م :  پ ؛   (ی↔ئ, ا↔آ)
+         row 3  ر ،  ک !  گ ؟                                  (ط↔ظ, ز↔ژ, د↔ذ, و↔ؤ) -->
+  <modmap>
+    <fn a="ص" b="ض"/> <fn a="ض" b="ص"/>
+    <fn a="ع" b="غ"/> <fn a="غ" b="ع"/>
+    <fn a="ط" b="ظ"/> <fn a="ظ" b="ط"/>
+    <fn a="ز" b="ژ"/> <fn a="ژ" b="ز"/>
+    <fn a="د" b="ذ"/> <fn a="ذ" b="د"/>
+    <fn a="و" b="ؤ"/> <fn a="ؤ" b="و"/>
+    <fn a="ی" b="ئ"/> <fn a="ئ" b="ی"/>
+    <fn a="ا" b="آ"/> <fn a="آ" b="ا"/>
+    <fn a="ث" b="combining_fatha"/>
+    <fn a="ق" b="combining_kasra"/>
+    <fn a="ف" b="combining_dammah"/>
+    <fn a="ه" b="combining_shaddah"/>
+    <fn a="خ" b="combining_fathatan"/>
+    <fn a="ح" b="combining_kasratan"/>
+    <fn a="ج" b="combining_dammatan"/>
+    <fn a="چ" b="combining_sukun"/>
+    <fn a="ش" b="«"/>
+    <fn a="س" b="»"/>
+    <fn a="ب" b="ء"/>
+    <fn a="ل" b="combining_hamza_above"/>
+    <fn a="ت" b="ة"/>
+    <fn a="ن" b="."/>
+    <fn a="م" b=":"/>
+    <fn a="پ" b="؛"/>
+    <fn a="ر" b="،"/>
+    <fn a="ک" b="!"/>
+    <fn a="گ" b="؟"/>
+  </modmap>
   <row>
     <key key0="ص" key7="ض" key2="۱" key4="loc esc"/>
     <key key0="ث" key2="۲" key1="~" key3="\@"/>

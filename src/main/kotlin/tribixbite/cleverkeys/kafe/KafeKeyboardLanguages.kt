@@ -122,6 +122,7 @@ object KafeKeyboardLanguages {
     /** v2: the Kurdish (ckb) pack joined fa/tr/ar. */
     private const val KEY_ALL_PACKS = "all_packs_v2"
     private const val KEY_TEN_COLUMNS = "ten_columns_v1"
+    private const val KEY_TICKS_RESTORED = "ticks_restored_v1"
     private const val OLD_KURDISH_LAYOUT = "arab_pc_ckb"
 
     /**
@@ -219,7 +220,12 @@ object KafeKeyboardLanguages {
      * service's first-run setup.
      */
     fun restoreTicked(context: Context) {
-        val ticked = tickedPrefs(context).getStringSet(KEY_TICKED, null) ?: return
+        // Once: the first-run migration it repairs happens once. Running it on every start put
+        // back a language the user had removed in Layout Manager.
+        val flags = tickedPrefs(context)
+        if (flags.getBoolean(KEY_TICKS_RESTORED, false)) return
+        flags.edit().putBoolean(KEY_TICKS_RESTORED, true).apply()
+        val ticked = flags.getStringSet(KEY_TICKED, null) ?: return
         val wanted = Language.values().filter { it.code in ticked }
         if (wanted.isEmpty()) return
         val prefs = DirectBootAwarePreferences.get_shared_preferences(context.applicationContext)

@@ -163,11 +163,32 @@ object KafeSpaceLanguageKeys {
         val layouts = ListGroupPreference.loadFromPreferences(
             LayoutsPreference.KEY, prefs, LayoutsPreference.DEFAULT, LayoutsPreference.SERIALIZER
         ) ?: LayoutsPreference.DEFAULT
-        if (lang == ENGLISH) {
-            return layouts.indexOfFirst { KafeKeyboardLanguages.languageOf(it) == null }
-        }
+        if (lang == ENGLISH) return englishIndex(context, layouts)
         val target = KafeKeyboardLanguages.Language.values().firstOrNull { it.code == lang }
             ?: return -1
         return layouts.indexOfFirst { KafeKeyboardLanguages.matches(it, target) }
     }
+
+    /**
+     * The English slot's layout: a Latin built-in layout (Kafe adds QWERTY on a Persian phone),
+     * else the system layout, unless the phone's own language is one of Kafe's non-Latin ones,
+     * where the system layout is that script (a Persian phone's system layout is Persian PC).
+     */
+    private fun englishIndex(context: Context, layouts: List<LayoutsPreference.Layout>): Int {
+        val latin = layouts.indexOfFirst {
+            it is LayoutsPreference.NamedLayout && it.name.startsWith("latn_") &&
+                KafeKeyboardLanguages.languageOf(it) == null
+        }
+        if (latin >= 0) return latin
+        val system = layouts.indexOfFirst { it is LayoutsPreference.SystemLayout }
+        val phone = KafeLanguage.systemLanguage(context)
+        val nonLatinPhone = phone in NON_LATIN_PHONE_LANGUAGES
+        if (system >= 0 && !nonLatinPhone) return system
+        return layouts.indexOfFirst {
+            it !is LayoutsPreference.SystemLayout && KafeKeyboardLanguages.languageOf(it) == null
+        }.takeIf { it >= 0 } ?: system
+    }
+
+    /** Phone languages whose system layout is not Latin. */
+    private val NON_LATIN_PHONE_LANGUAGES = setOf("fa", "ar", "ckb", "ku")
 }

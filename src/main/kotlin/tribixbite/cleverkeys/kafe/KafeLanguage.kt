@@ -13,7 +13,8 @@ import android.util.Log
 import java.util.Locale
 
 /**
- * Kafe Keyboard: the app's own UI language (Persian or English), Persian by default.
+ * Kafe Keyboard: the app's own UI language ([SUPPORTED]: Persian, English, Kurdish, Arabic,
+ * Turkish), Persian by default.
  *
  * Android 13+ (API 33): the per-app language of [LocaleManager]. The system stores it,
  * applies it to every component of the process (activities, settings, the keyboard
@@ -44,7 +45,7 @@ object KafeLanguage {
 
     @Volatile private var legacyCallbacksRegistered = false
 
-    /** The current UI language: [PERSIAN] or [ENGLISH]. */
+    /** The current UI language, one of [SUPPORTED]. */
     fun current(context: Context): String {
         if (Build.VERSION.SDK_INT >= 33) {
             val locales = localeManager(context)?.applicationLocales

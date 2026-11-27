@@ -54,12 +54,21 @@ object KafeSuggestionBarToggle {
 
     private fun action(context: Context) = "${context.packageName}.kafe.TOGGLE_SUGGESTION_STRIP"
 
+    /**
+     * The hidden/shown choice, in device-protected storage: the keyboard also runs before the
+     * first unlock after a reboot (direct boot), when credential storage throws on access.
+     */
+    private fun stripPrefs(context: Context) =
+        context.applicationContext.createDeviceProtectedStorageContext()
+            .getSharedPreferences(STRIP_PREFS, Context.MODE_PRIVATE)
+    private const val STRIP_PREFS = "kafe_suggestion_strip"
+
     /** Registers the receiver and, once per install, the Ctrl mapping. Call from the service. */
     fun setUp(context: Context) {
         val app = context.applicationContext
         if (!registered) {
             registered = true
-            hidden = app.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getBoolean(KEY_HIDDEN, false)
+            hidden = stripPrefs(app).getBoolean(KEY_HIDDEN, false)
             ContextCompat.registerReceiver(
                 app, receiver, IntentFilter(action(app)), ContextCompat.RECEIVER_NOT_EXPORTED
             )
@@ -94,8 +103,7 @@ object KafeSuggestionBarToggle {
     private val receiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
             hidden = !hidden
-            context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
-                .putBoolean(KEY_HIDDEN, hidden).apply()
+            stripPrefs(context).edit().putBoolean(KEY_HIDDEN, hidden).apply()
             val text = if (hidden) t(context,
                 "نوار ابزار و پیشنهاد کلمات غیرفعال شد", "Toolbar and suggestions off",
                 "Araç çubuğu ve öneriler kapalı", "تم إيقاف شريط الأدوات والاقتراحات",

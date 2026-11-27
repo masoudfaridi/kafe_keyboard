@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBarsPadding
@@ -54,7 +55,8 @@ import kotlinx.coroutines.launch
 import tribixbite.cleverkeys.R
 
 /**
- * Kafe Keyboard: a short tutorial, one key tip per page, each with a screenshot of the
+ * Kafe Keyboard: two tutorials (basic: the keyboard; advanced: the settings), one tip per
+ * page, each with a screenshot of the
  * keyboard (res-kafe/drawable-nodpi/kafe_tut_*.webp, marked where it matters).
  *
  * Opened from a card on the launcher ([KafeTutorialCard], under the keyboard languages) and
@@ -75,7 +77,8 @@ private class Tr(val fa: String, val en: String, val tr: String, val ar: String,
     }
 }
 
-private val PAGES = listOf(
+/** Basic tutorial: the keyboard itself, one gesture or key per page. */
+private val BASIC_PAGES = listOf(
     TutorialPage(
         R.drawable.kafe_tut_space,
         Tr("تعویض زبان با Space", "Switch language with Space", "Boşluk ile dil değiştirme",
@@ -153,15 +156,121 @@ private val PAGES = listOf(
     ),
 )
 
+/** Advanced tutorial: the settings, one screen per page. */
+private val ADVANCED_PAGES = listOf(
+    TutorialPage(
+        R.drawable.kafe_tut2_languages,
+        Tr("زبان برنامه و زبان‌های کیبورد", "App and keyboard languages", "Uygulama ve klavye dilleri",
+            "لغة التطبيق ولغات لوحة المفاتيح", "زمانی بەرنامە و زمانەکانی تەختەکلیل"),
+        Tr("در صفحهٔ اول، منوی بالا زبان برنامه را عوض می‌کند (فارسی، English، کوردی، العربية، Türkçe). در کارت «زبان‌های صفحه‌کلید» زبان‌هایی را که لازم دارید تیک بزنید؛ واژه‌نامهٔ همهٔ زبان‌ها از قبل نصب است.",
+            "On the start screen, the menu at the top changes the app language (فارسی, English, کوردی, العربية, Türkçe). In the “Keyboard languages” card, tick the languages you need; every language's dictionary is already installed.",
+            "Başlangıç ekranında üstteki menü uygulama dilini değiştirir. “Klavye dilleri” kartında ihtiyacınız olan dilleri işaretleyin; tüm dillerin sözlüğü zaten yüklüdür.",
+            "في شاشة البداية، القائمة في الأعلى تغيّر لغة التطبيق. في بطاقة «لغات لوحة المفاتيح» حدّد اللغات التي تحتاجها؛ قاموس كل لغة مثبّت مسبقًا.",
+            "لە پەڕەی سەرەتادا، لیستی سەرەوە زمانی بەرنامە دەگۆڕێت. لە کارتی «زمانەکانی تەختەکلیل» ئەو زمانانە دیاری بکە کە پێویستتە؛ فەرهەنگی هەموو زمانەکان پێشتر دامەزراوە."),
+    ),
+    TutorialPage(
+        R.drawable.kafe_tut2_theme,
+        Tr("تم و رنگ‌ها", "Themes and colours", "Temalar ve renkler", "السمات والألوان", "ڕووکار و ڕەنگەکان"),
+        Tr("تنظیمات ← فعالیت‌ها ← مدیر تم. روی یک تم بزنید تا همان لحظه اعمال شود. با دکمهٔ + بالای صفحه تم خودتان را با رنگ‌های دلخواه بسازید. ظاهرهای آشنا مثل iOS، Gboard و SwiftKey هم آماده‌اند.",
+            "Settings → Activities → Theme Manager. Tap a theme to apply it at once. Use the + at the top to make your own theme with your colours. Familiar looks such as iOS, Gboard and SwiftKey are ready too.",
+            "Ayarlar → Etkinlikler → Tema Yöneticisi. Bir temaya dokunun, hemen uygulanır. Üstteki + ile kendi renklerinizle tema oluşturun. iOS, Gboard ve SwiftKey gibi tanıdık görünümler de hazır.",
+            "الإعدادات ← الأنشطة ← مدير السمات. اضغط على سمة لتُطبَّق فورًا. استخدم + في الأعلى لصنع سمتك بألوانك. المظاهر المألوفة مثل iOS وGboard وSwiftKey جاهزة أيضًا.",
+            "ڕێکخستنەکان ← چالاکییەکان ← بەڕێوەبەری ڕووکار. لەسەر ڕووکارێک بدە تا یەکسەر جێبەجێ ببێت. بە + ی سەرەوە ڕووکاری خۆت بە ڕەنگی دڵخواز دروست بکە. ڕووکاری ناسراوی وەک iOS و Gboard و SwiftKey ئامادەن."),
+    ),
+    TutorialPage(
+        R.drawable.kafe_tut2_appearance,
+        Tr("ارتفاع و ظاهر کیبورد", "Keyboard height and look", "Klavye yüksekliği ve görünüm",
+            "ارتفاع لوحة المفاتيح ومظهرها", "بەرزی و ڕووکاری تەختەکلیل"),
+        Tr("تنظیمات ← ظاهر. ارتفاع کیبورد را برای حالت عمودی و افقی جدا تنظیم کنید (پیش‌فرض Kafe ۳۰٪). اندازهٔ حروف، فاصلهٔ کلیدها و حاشیه‌ها هم همین‌جاست.",
+            "Settings → Appearance. Set the keyboard height separately for portrait and landscape (Kafe's default is 30%). Label size, key spacing and margins are here too.",
+            "Ayarlar → Görünüm. Klavye yüksekliğini dikey ve yatay için ayrı ayarlayın (Kafe varsayılanı %30). Harf boyutu, tuş aralığı ve kenar boşlukları da burada.",
+            "الإعدادات ← المظهر. اضبط ارتفاع لوحة المفاتيح للوضع العمودي والأفقي كلٌّ على حدة (الافتراضي في Kafe ‏30٪). حجم الحروف والمسافات بين المفاتيح والهوامش هنا أيضًا.",
+            "ڕێکخستنەکان ← ڕووکار. بەرزی تەختەکلیل بۆ دۆخی ستوونی و ئاسۆیی جیا ڕێکبخە (بنەڕەتی Kafe ‏30٪). قەبارەی پیت و بۆشایی کلیلەکان و پەراوێزەکانیش لێرەن."),
+    ),
+    TutorialPage(
+        R.drawable.kafe_tut2_layouts,
+        Tr("مدیر چیدمان", "Layout Manager", "Düzen Yöneticisi", "مدير التخطيطات", "بەڕێوەبەری ڕیزبەندی"),
+        Tr("تنظیمات ← فعالیت‌ها ← مدیر چیدمان. ترتیب چیدمان‌ها را با کشیدن ≡ عوض کنید، با مداد ویرایش کنید یا چیدمان تازه اضافه کنید. «بازگشت به اصلی» چیدمان ۱۰ ستونهٔ Kafe را به چیدمان ۱۱ ستونهٔ CleverKeys برمی‌گرداند.",
+            "Settings → Activities → Layout Manager. Drag ≡ to reorder layouts, edit with the pencil, or add a new one. “Revert to original” turns Kafe's 10-column layout back into CleverKeys' 11-column one.",
+            "Ayarlar → Etkinlikler → Düzen Yöneticisi. Sıralamak için ≡ simgesini sürükleyin, kalemle düzenleyin veya yeni düzen ekleyin. “Orijinale dön”, Kafe'nin 10 sütunlu düzenini CleverKeys'in 11 sütunlu düzenine geri çevirir.",
+            "الإعدادات ← الأنشطة ← مدير التخطيطات. اسحب ≡ لإعادة الترتيب، وحرّر بالقلم أو أضف تخطيطًا جديدًا. «العودة إلى الأصل» يعيد تخطيط Kafe ذا الأعمدة العشرة إلى تخطيط CleverKeys ذي الأعمدة الإحدى عشرة.",
+            "ڕێکخستنەکان ← چالاکییەکان ← بەڕێوەبەری ڕیزبەندی. ≡ ڕابکێشە بۆ گۆڕینی ڕیزبەندی، بە قەڵەم دەستکاری بکە یان ڕیزبەندیی نوێ زیاد بکە. «گەڕانەوە بۆ ئەسڵی» ڕیزبەندیی ١٠ ستوونیی Kafe دەگەڕێنێتەوە بۆ ١١ ستوونیی CleverKeys."),
+    ),
+    TutorialPage(
+        R.drawable.kafe_tut2_dictionary,
+        Tr("مدیر واژه‌نامه", "Dictionary Manager", "Sözlük Yöneticisi", "مدير القاموس", "بەڕێوەبەری فەرهەنگ"),
+        Tr("تنظیمات ← فعالیت‌ها ← مدیر واژه‌نامه. واژه‌های خودتان (نام‌ها، اصطلاحات) را اضافه کنید، واژه‌ای را که نمی‌خواهید پیشنهاد شود خاموش کنید و بسامد واژه‌ها را ببینید.",
+            "Settings → Activities → Dictionary Manager. Add your own words (names, terms), switch off a word you never want suggested, and see how common each word is.",
+            "Ayarlar → Etkinlikler → Sözlük Yöneticisi. Kendi kelimelerinizi (adlar, terimler) ekleyin, önerilmesini istemediğiniz kelimeyi kapatın ve kelime sıklıklarını görün.",
+            "الإعدادات ← الأنشطة ← مدير القاموس. أضف كلماتك (أسماء، مصطلحات)، وأوقف كلمة لا تريد اقتراحها، واطّلع على شيوع كل كلمة.",
+            "ڕێکخستنەکان ← چالاکییەکان ← بەڕێوەبەری فەرهەنگ. وشەکانی خۆت (ناو، زاراوە) زیاد بکە، ئەو وشەیەی ناتەوێت پێشنیار بکرێت بیکوژێنەوە و بڕی بەکارهێنانی وشەکان ببینە."),
+    ),
+    TutorialPage(
+        R.drawable.kafe_tut2_shortswipe,
+        Tr("کشیدن‌های سفارشی هر کلید", "Custom swipes on any key", "Her tuşa özel kaydırmalar",
+            "سحبات مخصّصة لأي مفتاح", "ڕاکێشانی تایبەت بۆ هەر کلیلێک"),
+        Tr("تنظیمات ← فعالیت‌ها ← سفارشی‌سازی کنش‌های هر کلید. روی هر کلید بزنید و به هر جهتش یک کار بدهید: تایپ یک متن، باز کردن برنامه یا یک فرمان کیبورد. زبان‌های روی Space و «نوار» روی Ctrl هم همین‌جا عوض می‌شوند.",
+            "Settings → Activities → Key action customization. Tap any key and give each direction a job: type a text, open an app, or run a keyboard command. The Space languages and «نوار» on Ctrl are changed here too.",
+            "Ayarlar → Etkinlikler → Tuş eylemi özelleştirme. Bir tuşa dokunun ve her yöne bir iş verin: metin yazmak, uygulama açmak ya da klavye komutu. Boşluk dilleri ve Ctrl üzerindeki «نوار» da burada değişir.",
+            "الإعدادات ← الأنشطة ← تخصيص إجراءات المفاتيح. اضغط على أي مفتاح وامنح كل اتجاه مهمة: كتابة نص، فتح تطبيق، أو أمر لوحة مفاتيح. لغات المسافة و«نوار» على Ctrl تُغيَّر هنا أيضًا.",
+            "ڕێکخستنەکان ← چالاکییەکان ← تایبەتکردنی کاری کلیلەکان. لەسەر هەر کلیلێک بدە و کارێک بدە بە هەر ئاراستەیەک: نووسینی دەق، کردنەوەی بەرنامە یان فەرمانی تەختەکلیل. زمانەکانی Space و «نوار» لەسەر Ctrl لێرە دەگۆڕدرێن."),
+    ),
+    TutorialPage(
+        R.drawable.kafe_tut2_extrakeys,
+        Tr("کلیدهای اضافی", "Extra keys", "Ek tuşlar", "مفاتيح إضافية", "کلیلی زیادە"),
+        Tr("تنظیمات ← فعالیت‌ها ← پیکربندی کلیدهای اضافی. کلیدهایی مثل Alt، Meta، صفحهٔ یونانی/ریاضی یا میان‌برها را روشن کنید تا در گوشهٔ کلیدها اضافه شوند.",
+            "Settings → Activities → Extra keys. Switch on keys such as Alt, Meta, the Greek/math page or shortcuts, and they are added to the key corners.",
+            "Ayarlar → Etkinlikler → Ek tuşlar. Alt, Meta, Yunanca/matematik sayfası veya kısayollar gibi tuşları açın; tuş köşelerine eklenirler.",
+            "الإعدادات ← الأنشطة ← المفاتيح الإضافية. فعّل مفاتيح مثل Alt وMeta وصفحة اليونانية/الرياضيات أو الاختصارات، فتُضاف إلى زوايا المفاتيح.",
+            "ڕێکخستنەکان ← چالاکییەکان ← کلیلی زیادە. کلیلی وەک Alt و Meta و پەڕەی یۆنانی/بیرکاری یان کورتەڕێکان چالاک بکە تا بخرێنە گۆشەی کلیلەکان."),
+    ),
+    TutorialPage(
+        R.drawable.kafe_tut2_autocorrect,
+        Tr("تصحیح خودکار", "Autocorrect", "Otomatik düzeltme", "التصحيح التلقائي", "ڕاستکردنەوەی خۆکار"),
+        Tr("تنظیمات ← تصحیح خودکار. در Kafe به‌صورت پیش‌فرض خاموش است تا واژه‌ها بی‌اجازه عوض نشوند؛ اگر خواستید روشنش کنید. پیشنهاد کلمات در هر حال کار می‌کند.",
+            "Settings → Autocorrect. Kafe ships with it off, so words are never changed without asking; switch it on if you like. Word suggestions work either way.",
+            "Ayarlar → Otomatik düzeltme. Kafe'de varsayılan olarak kapalıdır, kelimeler izinsiz değişmez; isterseniz açın. Kelime önerileri her durumda çalışır.",
+            "الإعدادات ← التصحيح التلقائي. يأتي معطّلًا في Kafe كي لا تتغيّر الكلمات دون إذن؛ فعّله إن شئت. اقتراحات الكلمات تعمل في الحالتين.",
+            "ڕێکخستنەکان ← ڕاستکردنەوەی خۆکار. لە Kafe بە بنەڕەت کوژاوەتەوە تا وشەکان بێ ئیزن نەگۆڕدرێن؛ ئەگەر ویستت چالاکی بکە. پێشنیاری وشە لە هەردوو حاڵەتدا کار دەکات."),
+    ),
+    TutorialPage(
+        R.drawable.kafe_tut2_clipboard,
+        Tr("بریده‌دان (کلیپ‌بورد)", "Clipboard history", "Pano geçmişi", "سجل الحافظة", "مێژووی کلیپبۆرد"),
+        Tr("تنظیمات ← بریده‌دان. تاریخچهٔ کپی‌ها را روشن کنید و تعداد و مدت نگه‌داری را تعیین کنید. در کیبورد: Ctrl را نگه دارید و آیکون کلیپ‌بورد را بزنید.",
+            "Settings → Clipboard. Turn on the copy history and choose how many items to keep and for how long. On the keyboard: hold Ctrl and pick the clipboard icon.",
+            "Ayarlar → Pano. Kopyalama geçmişini açın, kaç öğe ve ne kadar süre tutulacağını seçin. Klavyede: Ctrl'ye basılı tutun ve pano simgesini seçin.",
+            "الإعدادات ← الحافظة. فعّل سجل النسخ واختر عدد العناصر ومدة الاحتفاظ بها. في لوحة المفاتيح: اضغط مطوّلًا على Ctrl واختر أيقونة الحافظة.",
+            "ڕێکخستنەکان ← کلیپبۆرد. مێژووی لەبەرگرتنەوە چالاک بکە و ژمارە و ماوەی هەڵگرتن دیاری بکە. لە تەختەکلیلدا: Ctrl ڕابگرە و ئایکۆنی کلیپبۆرد هەڵبژێرە."),
+    ),
+    TutorialPage(
+        R.drawable.kafe_tut2_backup,
+        Tr("پشتیبان‌گیری و بازیابی", "Backup and restore", "Yedekleme ve geri yükleme",
+            "النسخ الاحتياطي والاستعادة", "پاشەکەوت و گەڕاندنەوە"),
+        Tr("تنظیمات ← پشتیبان‌گیری و بازیابی. با «برون‌بری پیکربندی» همهٔ تنظیمات را در یک فایل ذخیره کنید و در گوشی جدید با «وارد کردن پیکربندی» برگردانید. واژه‌نامه و تاریخچهٔ کلیپ‌بورد هم جدا ذخیره می‌شوند.",
+            "Settings → Backup & restore. “Export configuration” saves every setting to one file; “Import configuration” brings it back on a new phone. The dictionary and clipboard history have their own export too.",
+            "Ayarlar → Yedekleme ve geri yükleme. “Yapılandırmayı dışa aktar” tüm ayarları tek dosyaya kaydeder; yeni telefonda “İçe aktar” ile geri getirin. Sözlük ve pano geçmişinin de ayrı dışa aktarımı var.",
+            "الإعدادات ← النسخ الاحتياطي والاستعادة. «تصدير الإعدادات» يحفظ كل الإعدادات في ملف واحد، و«استيراد الإعدادات» يعيدها على هاتف جديد. للقاموس وسجل الحافظة تصدير خاص بهما أيضًا.",
+            "ڕێکخستنەکان ← پاشەکەوت و گەڕاندنەوە. «هەناردەکردنی ڕێکخستن» هەموو ڕێکخستنەکان لە یەک فایلدا پاشەکەوت دەکات؛ لە مۆبایلی نوێدا بە «هاوردەکردن» بیگەڕێنەوە. فەرهەنگ و مێژووی کلیپبۆرد هەناردەی جیایان هەیە."),
+    ),
+)
+
 private fun t(lang: String, fa: String, en: String, tr: String, ar: String, ckb: String) =
     Tr(fa, en, tr, ar, ckb).get(lang)
+
+/** The two tutorials. */
+enum class KafeTutorialKind { BASIC, ADVANCED }
+
+private val BASIC_TITLE = Tr("آموزش مقدماتی", "Basic tutorial", "Temel eğitim", "الشرح الأساسي", "فێرکاریی سەرەتایی")
+private val ADVANCED_TITLE = Tr("آموزش پیشرفته", "Advanced tutorial", "İleri eğitim", "الشرح المتقدّم", "فێرکاریی پێشکەوتوو")
 
 /** The tutorial dialog: one tip per page, swipe or use the buttons. */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun KafeTutorialDialog(onDismiss: () -> Unit) {
+fun KafeTutorialDialog(kind: KafeTutorialKind = KafeTutorialKind.BASIC, onDismiss: () -> Unit) {
     val context = LocalContext.current
     val lang = remember { KafeLanguage.current(context) }
+    val PAGES = if (kind == KafeTutorialKind.BASIC) BASIC_PAGES else ADVANCED_PAGES
+    val title = if (kind == KafeTutorialKind.BASIC) BASIC_TITLE else ADVANCED_TITLE
     val pager = rememberPagerState { PAGES.size }
     val scope = rememberCoroutineScope()
     Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
@@ -169,7 +278,7 @@ fun KafeTutorialDialog(onDismiss: () -> Unit) {
             Column(Modifier.fillMaxSize().systemBarsPadding().padding(16.dp)) {
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        t(lang, "آموزش", "Tutorial", "Eğitim", "الشرح", "فێرکاری"),
+                        title.get(lang),
                         fontSize = 20.sp, fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onBackground, modifier = Modifier.weight(1f)
                     )
@@ -190,8 +299,8 @@ fun KafeTutorialDialog(onDismiss: () -> Unit) {
                         Image(
                             painter = painterResource(page.image),
                             contentDescription = page.title.get(lang),
-                            contentScale = ContentScale.FillWidth,
-                            modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp))
+                            contentScale = ContentScale.Fit,
+                            modifier = Modifier.fillMaxWidth().heightIn(max = 340.dp).clip(RoundedCornerShape(16.dp))
                         )
                         Spacer(Modifier.height(20.dp))
                         Text(
@@ -244,70 +353,80 @@ fun KafeTutorialDialog(onDismiss: () -> Unit) {
     }
 }
 
-/** Launcher card, under the keyboard languages: opens the tutorial. */
+private val CARD_SUBTITLE = Tr(
+    "نکات کیبورد و تنظیمات، صفحه به صفحه با عکس",
+    "Keyboard and settings tips, page by page with pictures",
+    "Klavye ve ayar ipuçları, resimli sayfalar halinde",
+    "نصائح لوحة المفاتيح والإعدادات، صفحة بصفحة مع صور",
+    "خاڵەکانی تەختەکلیل و ڕێکخستنەکان، پەڕە بە پەڕە بە وێنە",
+)
+private val BASIC_SHORT = Tr("مقدماتی", "Basic", "Temel", "أساسي", "سەرەتایی")
+private val ADVANCED_SHORT = Tr("پیشرفته", "Advanced", "İleri", "متقدّم", "پێشکەوتوو")
+
+/** Launcher card, under the keyboard languages: opens either tutorial. */
 @Composable
 fun KafeTutorialCard(titleColor: Color, textColor: Color, modifier: Modifier = Modifier) {
     val context = LocalContext.current
     val lang = remember { KafeLanguage.current(context) }
-    var open by remember { mutableStateOf(false) }
+    var open by remember { mutableStateOf<KafeTutorialKind?>(null) }
     Surface(
-        modifier = modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).clickable { open = true },
+        modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
         color = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
     ) {
-        Row(Modifier.padding(horizontal = 16.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) {
-                Text(
-                    t(lang, "آموزش", "Tutorial", "Eğitim", "الشرح", "فێرکاری"),
-                    color = titleColor, fontSize = 17.sp, fontWeight = FontWeight.Bold
-                )
-                Text(
-                    t(lang, "نکات کلیدی کیبورد، صفحه به صفحه با عکس",
-                        "The keyboard's key tips, page by page with pictures",
-                        "Klavyenin temel ipuçları, resimli sayfalar halinde",
-                        "أهم نصائح لوحة المفاتيح، صفحة بصفحة مع صور",
-                        "خاڵە سەرەکییەکانی تەختەکلیل، پەڕە بە پەڕە بە وێنە"),
-                    color = textColor, fontSize = 13.sp
-                )
+        Column(Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
+            Text(
+                t(lang, "آموزش", "Tutorial", "Eğitim", "الشرح", "فێرکاری"),
+                color = titleColor, fontSize = 17.sp, fontWeight = FontWeight.Bold
+            )
+            Text(CARD_SUBTITLE.get(lang), color = textColor, fontSize = 13.sp)
+            Row(Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Button(onClick = { open = KafeTutorialKind.BASIC }, modifier = Modifier.weight(1f)) {
+                    Text(BASIC_TITLE.get(lang))
+                }
+                OutlinedButton(onClick = { open = KafeTutorialKind.ADVANCED }, modifier = Modifier.weight(1f)) {
+                    Text(ADVANCED_TITLE.get(lang))
+                }
             }
-            Spacer(Modifier.width(12.dp))
-            Button(onClick = { open = true }) { Text(t(lang, "شروع", "Start", "Başla", "ابدأ", "دەستپێکردن")) }
         }
     }
-    if (open) KafeTutorialDialog { open = false }
+    open?.let { kind -> KafeTutorialDialog(kind) { open = null } }
 }
 
-/** First item of Settings: opens the tutorial. */
+/** First item of Settings: both tutorials. */
 @Composable
 fun KafeTutorialSettingsItem(modifier: Modifier = Modifier) {
     val context = LocalContext.current
     val lang = remember { KafeLanguage.current(context) }
-    var open by remember { mutableStateOf(false) }
+    var open by remember { mutableStateOf<KafeTutorialKind?>(null) }
     Card(
-        modifier = modifier.fillMaxWidth().padding(vertical = 4.dp).clickable { open = true },
+        modifier = modifier.fillMaxWidth().padding(vertical = 4.dp),
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
     ) {
-        Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text("📖", fontSize = 26.sp)
-            Spacer(Modifier.width(14.dp))
-            Column(Modifier.weight(1f)) {
-                Text(
-                    t(lang, "آموزش", "Tutorial", "Eğitim", "الشرح", "فێرکاری"),
-                    fontSize = 17.sp, fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer
-                )
-                Text(
-                    t(lang, "نکات کلیدی کیبورد، صفحه به صفحه با عکس",
-                        "The keyboard's key tips, page by page with pictures",
-                        "Klavyenin temel ipuçları, resimli sayfalar halinde",
-                        "أهم نصائح لوحة المفاتيح، صفحة بصفحة مع صور",
-                        "خاڵە سەرەکییەکانی تەختەکلیل، پەڕە بە پەڕە بە وێنە"),
-                    fontSize = 13.sp, color = MaterialTheme.colorScheme.onPrimaryContainer
-                )
+        Column(Modifier.padding(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("📖", fontSize = 26.sp)
+                Spacer(Modifier.width(14.dp))
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        t(lang, "آموزش", "Tutorial", "Eğitim", "الشرح", "فێرکاری"),
+                        fontSize = 17.sp, fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                    Text(CARD_SUBTITLE.get(lang), fontSize = 13.sp, color = MaterialTheme.colorScheme.onPrimaryContainer)
+                }
+            }
+            Row(Modifier.fillMaxWidth().padding(top = 10.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Button(onClick = { open = KafeTutorialKind.BASIC }, modifier = Modifier.weight(1f)) {
+                    Text(BASIC_SHORT.get(lang))
+                }
+                OutlinedButton(onClick = { open = KafeTutorialKind.ADVANCED }, modifier = Modifier.weight(1f)) {
+                    Text(ADVANCED_SHORT.get(lang))
+                }
             }
         }
     }
-    if (open) KafeTutorialDialog { open = false }
+    open?.let { kind -> KafeTutorialDialog(kind) { open = null } }
 }

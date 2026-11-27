@@ -8,21 +8,25 @@ import tribixbite.cleverkeys.prefs.ListGroupPreference
 
 /**
  * Kafe Keyboard: the keyboard languages a user can tick on the launcher. English (the system
- * layout) is always on; each ticked language adds its layout to CleverKeys' layout list, so
- * the spacebar's swipe up/down cycles through them, and installs its bundled dictionary pack
- * when one ships.
+ * layout) is always on; each ticked language adds its layout to CleverKeys' layout list and
+ * installs its bundled dictionary pack.
+ *
+ * Persian, Arabic and Kurdish use Kafe's own 10-column layouts (assets/kafe/layouts/), stored
+ * as CleverKeys custom layouts whose `origin` is the built-in layout they derive from. Layout
+ * Manager therefore shows them as a "modified copy" of that layout, and its "Revert to
+ * original" brings back the 11-column built-in. Nothing in CleverKeys is modified.
  *
  * The layout list (`layouts` preference) is the single source of truth: a language is "on"
- * when its layout is in the list, so changes made in Layout Manager show up here too.
- * Nothing in CleverKeys itself is modified.
+ * when an entry of the list belongs to it ([matches]), so Layout Manager edits show up here.
  */
 object KafeKeyboardLanguages {
     private const val TAG = "KafeKbdLanguages"
 
     /**
-     * One tickable language. [layout] is a built-in layout in srcs/layouts. [bindLanguage]
-     * binds the layout entry to a language code when its XML declares none, so its dictionary
-     * (or no dictionary, rather than English suggestions) follows the layout.
+     * One tickable language. [layout] is the CleverKeys built-in it derives from; [tenAsset] is
+     * Kafe's 10-column layout for it (null: the built-in is used as is). [bindLanguage] binds
+     * the entry to a language code, so its dictionary (or none, rather than English
+     * suggestions) follows the layout.
      */
     enum class Language(
         val code: String,
@@ -40,24 +44,59 @@ object KafeKeyboardLanguages {
         val bindLanguage: String?,
         /** Full Kurdish (Sorani) name: card labels in the Kurdish UI. */
         val ckbName: String,
+        /** Kafe's 10-column layout, or null to use [layout] itself. */
+        val tenAsset: String?,
     ) {
-        PERSIAN("fa", "arab_pc_ir", "فارسی", "Persian", "Farsça", "الفارسية", "kafe/langpack-fa.zip", 2, null, "فارسی"), // XML declares fa
-        // Central Kurdish on the Persian layout (CleverKeys' arab_pc_ckb_fa), familiar to Persian
-        // typists. Earlier builds used arab_pc_ckb; see [migrateKurdishLayout].
+        PERSIAN("fa", "arab_pc_ir", "فارسی", "Persian", "Farsça", "الفارسية",
+            "kafe/langpack-fa.zip", 2, "fa", "فارسی", "kafe/layouts/kafe_fa_10.xml"),
+        // Central Kurdish on the Persian positions (from CleverKeys' arab_pc_ckb_fa). Earlier
+        // builds used arab_pc_ckb; see [migrateKurdishLayout].
         // Pack: scripts/kafe/build_ckb_langpack.py (kww Kurdish Wikipedia counts + Sorani Hunspell).
-        KURDISH("ckb", "arab_pc_ckb_fa", "کُردی", "Kurdish", "Kürtçe", "الكردية", "kafe/langpack-ckb.zip", 1, "ckb", "کوردی"),
-        TURKISH("tr", "latn_qwerty_tr", "ترکی", "Turkish", "Türkçe", "التركية", "kafe/langpack-tr.zip", 2, "tr", "تورکی"),
+        KURDISH("ckb", "arab_pc_ckb_fa", "کُردی", "Kurdish", "Kürtçe", "الكردية",
+            "kafe/langpack-ckb.zip", 1, "ckb", "کوردی", "kafe/layouts/kafe_ckb_10.xml"),
+        TURKISH("tr", "latn_qwerty_tr", "ترکی", "Turkish", "Türkçe", "التركية",
+            "kafe/langpack-tr.zip", 2, "tr", "تورکی", null),
         // Pack: scripts/kafe/build_ar_langpack.py (wordfreq ar, 50,000 words).
-        ARABIC("ar", "arab_pc", "عربی", "Arabic", "Arapça", "العربية", "kafe/langpack-ar.zip", 1, "ar", "عەرەبی");
+        ARABIC("ar", "arab_pc", "عربی", "Arabic", "Arapça", "العربية",
+            "kafe/langpack-ar.zip", 1, "ar", "عەرەبی", "kafe/layouts/kafe_ar_10.xml");
 
         /** True when a dictionary (suggestions, swipe) ships for this language. */
         val hasDictionary: Boolean get() = packAsset != null
     }
 
-    /** Languages whose layout is currently in the layout list. */
+    /**
+     * True when [entry] belongs to [language]: its built-in layout, or a custom layout derived
+     * from it (Kafe's 10-column one, or the user's own modified copy).
+     */
+    fun matches(entry: LayoutsPreference.Layout, language: Language): Boolean = when (entry) {
+        is LayoutsPreference.NamedLayout -> entry.name == language.layout
+        is LayoutsPreference.CustomLayout -> entry.origin == language.layout
+        else -> false
+    }
+
+    /** The Kafe language [entry] belongs to, or null (English / system / other layouts). */
+    fun languageOf(entry: LayoutsPreference.Layout): Language? =
+        Language.values().firstOrNull { matches(entry, it) }
+
+    /** Languages with an entry in the layout list. */
     fun enabled(context: Context): Set<Language> {
-        val names = layoutNames(context)
-        return Language.values().filter { it.layout in names }.toSet()
+        val layouts = load(DirectBootAwarePreferences.get_shared_preferences(context.applicationContext))
+        return Language.values().filter { lang -> layouts.any { matches(it, lang) } }.toSet()
+    }
+
+    /** The layout entry Kafe adds for [language]: its 10-column layout, or its built-in. */
+    private fun newEntry(context: Context, language: Language): LayoutsPreference.Layout {
+        val asset = language.tenAsset
+            ?: return LayoutsPreference.NamedLayout(language.layout, language.bindLanguage)
+        val xml = context.assets.open(asset).bufferedReader(Charsets.UTF_8).use { it.readText() }
+        val custom = LayoutsPreference.CustomLayout.parse(
+            xml, language = language.bindLanguage, origin = language.layout,
+        )
+        if (custom.parsed == null) {
+            Log.e(TAG, "$asset does not parse; using ${language.layout}")
+            return LayoutsPreference.NamedLayout(language.layout, language.bindLanguage)
+        }
+        return custom
     }
 
     /**
@@ -82,27 +121,47 @@ object KafeKeyboardLanguages {
 
     /** v2: the Kurdish (ckb) pack joined fa/tr/ar. */
     private const val KEY_ALL_PACKS = "all_packs_v2"
+    private const val KEY_TEN_COLUMNS = "ten_columns_v1"
     private const val OLD_KURDISH_LAYOUT = "arab_pc_ckb"
 
     /**
      * Kurdish moved from arab_pc_ckb to arab_pc_ckb_fa: replace the old layout entry in place
      * (same position, so the spacebar order stays) on installs that ticked Kurdish before.
-     * Blocking; call off the main thread.
+     * Blocking; call off the main thread, before [migrateToTenColumns].
      */
     fun migrateKurdishLayout(context: Context) {
         val prefs = DirectBootAwarePreferences.get_shared_preferences(context.applicationContext)
         val current = load(prefs)
         if (current.none { it.nameOf() == OLD_KURDISH_LAYOUT }) return
-        val hasNew = current.any { it.nameOf() == Language.KURDISH.layout }
+        val hasNew = current.any { matches(it, Language.KURDISH) }
         val updated = current.mapNotNull {
             if (it.nameOf() != OLD_KURDISH_LAYOUT) it
             else if (hasNew) null
             else LayoutsPreference.NamedLayout(Language.KURDISH.layout, Language.KURDISH.bindLanguage)
         }
-        val edit = prefs.edit()
-        LayoutsPreference.saveToPreferences(edit, updated)
-        edit.apply()
+        save(prefs, updated)
         Log.i(TAG, "Kurdish layout moved to ${Language.KURDISH.layout}")
+    }
+
+    /**
+     * Once per install: each built-in Persian / Arabic / Kurdish entry becomes Kafe's 10-column
+     * layout, in place (the spacebar order stays). The user's own custom copies are left alone,
+     * and a later "Revert to original" in Layout Manager sticks.
+     * Blocking; call off the main thread.
+     */
+    fun migrateToTenColumns(context: Context) {
+        val flags = tickedPrefs(context)
+        if (flags.getBoolean(KEY_TEN_COLUMNS, false)) return
+        val prefs = DirectBootAwarePreferences.get_shared_preferences(context.applicationContext)
+        val current = load(prefs)
+        var changed = false
+        val updated = current.map { entry ->
+            val lang = (entry as? LayoutsPreference.NamedLayout)?.let { languageOf(it) }
+            if (lang?.tenAsset != null) { changed = true; newEntry(context, lang) } else entry
+        }
+        if (changed) save(prefs, updated)
+        flags.edit().putBoolean(KEY_TEN_COLUMNS, true).apply()
+        Log.i(TAG, "10-column layouts: ${if (changed) "applied" else "nothing to change"}")
     }
 
     /**
@@ -132,25 +191,21 @@ object KafeKeyboardLanguages {
         if (wanted.isEmpty()) return
         val prefs = DirectBootAwarePreferences.get_shared_preferences(context.applicationContext)
         val current = load(prefs)
-        val names = current.mapNotNull { it.nameOf() }.toSet()
-        val missing = wanted.filter { it.layout !in names }
+        val missing = wanted.filter { lang -> current.none { matches(it, lang) } }
         if (missing.isEmpty()) return
         for (lang in missing) {
             if (lang.packAsset != null) {
                 BundledPersianPack.installPack(context, lang.packAsset, lang.code, lang.packVersion)
             }
         }
-        val edit = prefs.edit()
-        LayoutsPreference.saveToPreferences(
-            edit, current + missing.map { LayoutsPreference.NamedLayout(it.layout, it.bindLanguage) }
-        )
-        edit.apply()
+        save(prefs, current + missing.map { newEntry(context, it) })
         Log.i(TAG, "Restored ticked layouts: ${missing.joinToString { it.code }}")
     }
 
     /**
      * Turns [language] on (adds its layout, installs its pack in the background) or off
-     * (removes its layout). English is never touched. [onDone] runs on a background thread.
+     * (removes every entry of it). English is never touched. [onDone] runs on a background
+     * thread.
      */
     fun setEnabled(context: Context, language: Language, on: Boolean, onDone: () -> Unit = {}) {
         val app = context.applicationContext
@@ -163,17 +218,13 @@ object KafeKeyboardLanguages {
                 val prefs = DirectBootAwarePreferences.get_shared_preferences(app)
                 val current = load(prefs)
                 val updated = if (on) {
-                    if (current.any { it.nameOf() == language.layout }) current
-                    else current + LayoutsPreference.NamedLayout(language.layout, language.bindLanguage)
+                    if (current.any { matches(it, language) }) current
+                    else current + newEntry(app, language)
                 } else {
-                    current.filterNot { it.nameOf() == language.layout }
+                    current.filterNot { matches(it, language) }
                         .ifEmpty { LayoutsPreference.DEFAULT.take(1) }
                 }
-                if (updated != current) {
-                    val edit = prefs.edit()
-                    LayoutsPreference.saveToPreferences(edit, updated)
-                    edit.apply()
-                }
+                if (updated != current) save(prefs, updated)
             } catch (e: Exception) {
                 Log.e(TAG, "Changing ${language.code} failed", e)
             }
@@ -181,9 +232,11 @@ object KafeKeyboardLanguages {
         }, "kafe-kbd-lang").start()
     }
 
-    private fun layoutNames(context: Context): Set<String> =
-        load(DirectBootAwarePreferences.get_shared_preferences(context.applicationContext))
-            .mapNotNull { it.nameOf() }.toSet()
+    private fun save(prefs: android.content.SharedPreferences, layouts: List<LayoutsPreference.Layout>) {
+        val edit = prefs.edit()
+        LayoutsPreference.saveToPreferences(edit, layouts)
+        edit.apply()
+    }
 
     private fun load(prefs: android.content.SharedPreferences): List<LayoutsPreference.Layout> =
         ListGroupPreference.loadFromPreferences(

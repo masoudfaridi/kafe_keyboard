@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Kafe Keyboard: Central Kurdish (Sorani), 10 columns, on the Persian 10 positions, based on
+     CleverKeys' Central Kurdish Persian Layout (arab_pc_ckb_fa). Every row is 10 units wide.
+     Letters off the main keys:
+       swipe-up (N): ژ on ز · ڤ on ف · غ on ع · چ on ج · ذ on د · ث on پ
+       swipe-down (S): ض on ش · ص on س · ط on ت · ظ on ز · ڵ on ل (as on arab_pc_ckb_fa)
+     Punctuation follows Persian 10: «،» on ع top-left, «.» on ر top-right. Digits ١–٠ stay on
+     row 2 swipe-up. -->
+<keyboard name="Kurdish 10 (Kafe)" script="arabic" numpad_script="hindu-arabic" language="ckb" bottom_row="false">
+  <row>
+    <key key0="ە" key2="loc esc" key1="(" key4=")"/>
+    <key key0="ۆ" key7="!" key8="ۊ"/>
+    <key key0="ق" key7=":" key8="*"/>
+    <key key0="ف" key7="ڤ" key8="+" key2="؟"/>
+    <key key0="ع" key1="،" key7="غ" key8="_"/>
+    <key key0="ھ" key7="٪" key8="ه"/>
+    <key key0="خ" key3="[" key2="]"/>
+    <key key0="ح" key3="{" key2="}"/>
+    <key key0="ج" key7="چ" key3="halfspace"/>
+    <key key0="ێ" key7="ٕ"/>
+  </row>
+  <row>
+    <key key0="ش" key7="١" key8="ض"/>
+    <key key0="س" key7="٢" key8="ص"/>
+    <key key0="ی" key7="٣" key8="ؽ"/>
+    <key key0="ب" key7="٤" key8="ٮ"/>
+    <key key0="ل" key7="٥" key8="ڵ"/>
+    <key key0="ا" key7="٦" key8="آ" key1="أ" key3="إ"/>
+    <key key0="ت" key7="٧" key8="ط"/>
+    <key key0="ن" key7="٨" key8="-"/>
+    <key key0="م" key7="٩" key8="="/>
+    <key key0="ک" key7="٠" key8="ك" key2="loc tab"/>
+  </row>
+  <row>
+    <key key0="ڕ" key7="&#1563;"/>
+    <key key0="ز" key7="ژ" key8="ظ"/>
+    <key key0="ر" key2="." key7="ٔ"/>
+    <key key0="د" key7="ذ"/>
+    <key key0="پ" key7="ث"/>
+    <key key0="و" key7="ۉ" key1="ؤ"/>
+    <key key0="ئ" key7="ء"/>
+    <key key0="گ"/>
+    <key width="2.0" key0="backspace" key1="delete_last_word" key2="delete"/>
+  </row>
+  <!-- The half-space bottom row of arab_pc_ckb_fa, scaled to 10 units. -->
+  <row height="0.95">
+    <key width="1.5" key0="ctrl" key1="loc switch_greekmath" key2="loc meta" key3="loc switch_clipboard" key7="switch_numeric"/>
+    <key width="1.0" key0="fn" key1="loc alt" key2="loc change_method" key3="switch_emoji" key4="config" key6="loc toggle_true_black" key7="switch_gif"/>
+    <key width="4.0" key0="space" key7="loc switch_forward" key8="loc switch_backward" key5="cursor_left" key6="cursor_right"/>
+    <key width="1.0" key0="halfspace" key7="zwj"/>
+    <key width="1.0" key0="loc compose" key7="up" key6="right" key5="left" key8="down" key1="doc_home" key2="loc page_up" key3="doc_end" key4="loc page_down"/>
+    <key width="1.5" key0="enter" key1="loc voice_typing" key2="action"/>
+  </row>
+</keyboard>

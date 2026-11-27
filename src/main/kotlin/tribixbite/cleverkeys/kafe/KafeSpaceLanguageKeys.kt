@@ -163,14 +163,11 @@ object KafeSpaceLanguageKeys {
         val layouts = ListGroupPreference.loadFromPreferences(
             LayoutsPreference.KEY, prefs, LayoutsPreference.DEFAULT, LayoutsPreference.SERIALIZER
         ) ?: LayoutsPreference.DEFAULT
-        val kafeLayouts = KafeKeyboardLanguages.Language.values().map { it.layout }.toSet()
         if (lang == ENGLISH) {
-            return layouts.indexOfFirst {
-                (it as? LayoutsPreference.NamedLayout)?.name !in kafeLayouts
-            }
+            return layouts.indexOfFirst { KafeKeyboardLanguages.languageOf(it) == null }
         }
-        val target = KafeKeyboardLanguages.Language.values().firstOrNull { it.code == lang }?.layout
+        val target = KafeKeyboardLanguages.Language.values().firstOrNull { it.code == lang }
             ?: return -1
-        return layouts.indexOfFirst { (it as? LayoutsPreference.NamedLayout)?.name == target }
+        return layouts.indexOfFirst { KafeKeyboardLanguages.matches(it, target) }
     }
 }

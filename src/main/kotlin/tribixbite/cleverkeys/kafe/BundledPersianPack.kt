@@ -63,6 +63,7 @@ object BundledPersianPack {
                 try {
                     seedKafeDefaults(app)
                     KafeKeyboardLanguages.migrateKurdishLayout(app)
+                    KafeKeyboardLanguages.migrateToTenColumns(app)
                     KafeKeyboardLanguages.restoreTicked(app)
                     KafeKeyboardLanguages.installAllPacks(app)
                 } catch (e: Exception) {

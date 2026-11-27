@@ -3,7 +3,7 @@
      Every row is 10 units wide (the shared bottom row already is). Off the main keys, on
      swipe-up (N): ث on ت · ظ on ط · ذ on د · ؤ on و · ئ on ي · لا on ل.
      د and ط move to row 3. Harakat (top-left corners), digits and symbols keep their places. -->
-<keyboard name="Arabic 10 (Kafe)" script="arabic" language="ar">
+<keyboard name="Arabic 10 (Kafe)" script="arabic" numpad_script="hindu-arabic" language="ar">
   <row>
     <key key0="ض" key1="&#1614;" key2="1" key3="`" key4="loc esc"/>
     <key key0="ص" key1="&#1611;" key2="2" key3="\@"/>

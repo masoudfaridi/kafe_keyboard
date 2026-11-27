@@ -64,6 +64,7 @@ object BundledPersianPack {
                     seedKafeDefaults(app)
                     KafeKeyboardLanguages.migrateKurdishLayout(app)
                     KafeKeyboardLanguages.migrateToTenColumns(app)
+                    KafeKeyboardLanguages.refreshTenColumnLayouts(app)
                     KafeKeyboardLanguages.restoreTicked(app)
                     KafeKeyboardLanguages.installAllPacks(app)
                 } catch (e: Exception) {
@@ -97,18 +98,35 @@ object BundledPersianPack {
 
     private const val KEY_AUTOCORRECT_SEEDED = "autocorrect_off_v1"
     private const val PREF_AUTOCORRECT = "autocorrect_enabled"
+    private const val KEY_NUMBER_ROW_SEEDED = "number_row_v2"
+    private const val PREF_NUMBER_ROW = "number_row"
 
     /**
-     * Kafe defaults that differ from CleverKeys', applied once: autocorrect starts OFF.
-     * Only written when the user never chose a value, so turning it on later sticks.
+     * Kafe defaults that differ from CleverKeys', each applied once and only when the user
+     * never chose a value, so a later change sticks:
+     * - autocorrect starts OFF;
+     * - the number row is ON, with symbols on its keys ("symbols"). Its digits follow each
+     *   layout's script (`numpad_script`): ۱۲۳ for Persian, ١٢٣ for Arabic and Kurdish, 123
+     *   for English and Turkish.
      */
     private fun seedKafeDefaults(context: Context) {
         val kafePrefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-        if (kafePrefs.getBoolean(KEY_AUTOCORRECT_SEEDED, false)) return
         val prefs = DirectBootAwarePreferences.get_shared_preferences(context)
-        if (!prefs.contains(PREF_AUTOCORRECT)) prefs.edit().putBoolean(PREF_AUTOCORRECT, false).apply()
-        kafePrefs.edit().putBoolean(KEY_AUTOCORRECT_SEEDED, true).apply()
-        Log.i(TAG, "Autocorrect off by default")
+        if (!kafePrefs.getBoolean(KEY_AUTOCORRECT_SEEDED, false)) {
+            if (!prefs.contains(PREF_AUTOCORRECT)) prefs.edit().putBoolean(PREF_AUTOCORRECT, false).apply()
+            kafePrefs.edit().putBoolean(KEY_AUTOCORRECT_SEEDED, true).apply()
+            Log.i(TAG, "Autocorrect off by default")
+        }
+        if (!kafePrefs.getBoolean(KEY_NUMBER_ROW_SEEDED, false)) {
+            // CleverKeys' first-run migration (Config, saved_version < 2) always writes the
+            // default "no_number_row", so that value counts as "never chosen" here.
+            val current = prefs.getString(PREF_NUMBER_ROW, null)
+            if (current == null || current == "no_number_row") {
+                prefs.edit().putString(PREF_NUMBER_ROW, "symbols").apply()
+            }
+            kafePrefs.edit().putBoolean(KEY_NUMBER_ROW_SEEDED, true).apply()
+            Log.i(TAG, "Number row on by default")
+        }
     }
 
     /**

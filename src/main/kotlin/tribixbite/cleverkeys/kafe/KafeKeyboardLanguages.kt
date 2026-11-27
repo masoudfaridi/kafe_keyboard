@@ -165,6 +165,39 @@ object KafeKeyboardLanguages {
     }
 
     /**
+     * Keeps Kafe's 10-column entries in step with the layout files that ship in the APK: an
+     * entry whose layout name is a Kafe layout's ("Persian 10 (Kafe)" …) but whose stored XML
+     * differs from the shipped file is replaced, keeping its position, language, theme and key
+     * geometry. A user who wants to edit one of these layouts keeps it by renaming it.
+     * Blocking; call off the main thread.
+     */
+    fun refreshTenColumnLayouts(context: Context) {
+        val prefs = DirectBootAwarePreferences.get_shared_preferences(context.applicationContext)
+        val current = load(prefs)
+        val shipped = Language.values().mapNotNull { lang ->
+            val asset = lang.tenAsset ?: return@mapNotNull null
+            val xml = context.assets.open(asset).bufferedReader(Charsets.UTF_8).use { it.readText() }
+            val name = LayoutsPreference.CustomLayout.parse(xml).parsed?.name ?: return@mapNotNull null
+            name to xml
+        }.toMap()
+        var changed = false
+        val updated = current.map { entry ->
+            val custom = entry as? LayoutsPreference.CustomLayout ?: return@map entry
+            val xml = shipped[custom.parsed?.name] ?: return@map entry
+            if (xml == custom.xml) return@map entry
+            changed = true
+            LayoutsPreference.CustomLayout.parse(
+                xml, language = custom.language, theme = custom.theme,
+                keyGeometry = custom.keyGeometry, origin = custom.origin,
+            )
+        }
+        if (changed) {
+            save(prefs, updated)
+            Log.i(TAG, "Kafe layouts refreshed from the APK")
+        }
+    }
+
+    /**
      * Installs every bundled dictionary pack (fa, tr, ar, ckb) once, whether or not its language
      * is ticked, so each language has its suggestions and swipe ready the moment it is turned
      * on. Bump [KEY_ALL_PACKS] when a new pack ships. Blocking; call off the main thread.

@@ -28,8 +28,8 @@ import java.lang.ref.WeakReference
 object KafeKeyPreview {
     /** Kafe's default enlargement of the look's preview (width, height, label). */
     private const val SCALE = 1.2f
-    /** Extra rise above the key, in key heights. */
-    private const val LIFT = 0.18f
+    /** Extra rise above the key, in key heights (0.5: clear of the finger). */
+    private const val LIFT = 0.5f
 
     private var host = WeakReference<View>(null)
     private var drawer: ((Canvas, Float) -> Unit)? = null

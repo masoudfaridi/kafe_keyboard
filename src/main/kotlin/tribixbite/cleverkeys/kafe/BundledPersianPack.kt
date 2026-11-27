@@ -127,7 +127,24 @@ object BundledPersianPack {
             kafePrefs.edit().putBoolean(KEY_NUMBER_ROW_SEEDED, true).apply()
             Log.i(TAG, "Number row on by default")
         }
+        if (!kafePrefs.getBoolean(KEY_HEIGHT_SEEDED, false)) {
+            // Portrait height 30% (CleverKeys: 27%). CleverKeys' own default counts as unset.
+            val current = if (prefs.contains(PREF_HEIGHT)) prefs.getSafeIntOrNull(PREF_HEIGHT) else null
+            if (current == null || current == tribixbite.cleverkeys.Defaults.KEYBOARD_HEIGHT_PORTRAIT) {
+                prefs.edit().putInt(PREF_HEIGHT, KAFE_HEIGHT_PORTRAIT).apply()
+            }
+            kafePrefs.edit().putBoolean(KEY_HEIGHT_SEEDED, true).apply()
+            Log.i(TAG, "Keyboard height $KAFE_HEIGHT_PORTRAIT% by default")
+        }
     }
+
+    private const val KEY_HEIGHT_SEEDED = "keyboard_height_30_v1"
+    private const val PREF_HEIGHT = "keyboard_height"
+    private const val KAFE_HEIGHT_PORTRAIT = 30
+
+    /** The stored height, or null when it is not an Int (a mistyped import). */
+    private fun SharedPreferences.getSafeIntOrNull(key: String): Int? =
+        try { getInt(key, 0) } catch (e: ClassCastException) { null }
 
     /**
      * Installs the bundled pack [asset] (language [code]) unless that pack, at [version] or

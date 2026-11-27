@@ -25,7 +25,8 @@ import java.util.WeakHashMap
 /**
  * Kafe Keyboard: edit toolbar inside the suggestion bar.
  *
- * Order: [toggle] Select All, Copy, ◀, ▶, Cut, Paste. The round toggle is shown in both modes
+ * Order: [toggle] Select All, Copy, ◀, ▶, Cut, Paste, Settings (the gear, at the end, opens
+ * CleverKeys' settings like its own `config` key). The round toggle is shown in both modes
  * (first in the suggestion row, first in the toolbar) and switches between them. The toolbar
  * also shows by itself whenever there are no suggestions. The arrows repeat while held.
  *
@@ -40,7 +41,7 @@ object KafeEditToolbar {
     private const val TOGGLE_SLOT_DP = 44
     private const val TOGGLE_CIRCLE_DP = 34
 
-    private enum class Action { SELECT_ALL, COPY, LEFT, RIGHT, CUT, PASTE }
+    private enum class Action { SELECT_ALL, COPY, LEFT, RIGHT, CUT, PASTE, SETTINGS }
 
     /** Per-bar state: views are created once and reused on every rebind. */
     private class BarState(
@@ -140,6 +141,7 @@ object KafeEditToolbar {
             Action.RIGHT -> "right"
             Action.CUT -> "cut"
             Action.PASTE -> "paste"
+            Action.SETTINGS -> "config"
         }
     ).getString()
 
@@ -173,7 +175,16 @@ object KafeEditToolbar {
     }
 
     private fun perform(action: Action) {
-        val ic = CleverKeysService.getInstance()?.currentInputConnection ?: return
+        val service = CleverKeysService.getInstance() ?: return
+        if (action == Action.SETTINGS) {
+            // Same as CleverKeys' own `config` key (KeyboardReceiver, Event.CONFIG).
+            service.startActivity(
+                android.content.Intent(service, tribixbite.cleverkeys.SettingsActivity::class.java)
+                    .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+            )
+            return
+        }
+        val ic = service.currentInputConnection ?: return
         when (action) {
             Action.SELECT_ALL -> ic.performContextMenuAction(android.R.id.selectAll)
             Action.COPY -> ic.performContextMenuAction(android.R.id.copy)
@@ -181,6 +192,7 @@ object KafeEditToolbar {
             Action.RIGHT -> sendKey(ic, KeyEvent.KEYCODE_DPAD_RIGHT)
             Action.CUT -> ic.performContextMenuAction(android.R.id.cut)
             Action.PASTE -> ic.performContextMenuAction(android.R.id.paste)
+            Action.SETTINGS -> {}
         }
     }
 
@@ -241,5 +253,6 @@ object KafeEditToolbar {
         Action.RIGHT -> t("حرکت کرسر به راست", "Move cursor right", "İmleci sağa taşı", "تحريك المؤشر يمينًا", "نیشاندەر بۆ ڕاست")
         Action.CUT -> t("برش", "Cut", "Kes", "قص", "بڕین")
         Action.PASTE -> t("چسباندن", "Paste", "Yapıştır", "لصق", "لکاندن")
+        Action.SETTINGS -> t("تنظیمات", "Settings", "Ayarlar", "الإعدادات", "ڕێکخستنەکان")
     }
 }

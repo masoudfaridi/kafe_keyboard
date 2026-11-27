@@ -55,6 +55,8 @@ object BundledPersianPack {
         KafeLanguage.ensureApplied(app)
         // One reserved spacebar swipe per language (up EN, down FA, right KU, left AR, up-left TR).
         KafeSpaceLanguageKeys.setUp(app)
+        // Ctrl's down slot hides/shows the toolbar and suggestions.
+        KafeSuggestionBarToggle.setUp(app)
         Handler(Looper.getMainLooper()).post {
             Thread({
                 ensureInstalled(app)

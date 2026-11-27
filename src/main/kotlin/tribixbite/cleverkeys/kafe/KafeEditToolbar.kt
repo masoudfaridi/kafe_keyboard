@@ -86,6 +86,7 @@ object KafeEditToolbar {
             BarState(toggle, label, Action.values().map { createButton(bar, it) })
         }
         s.rerender = rerender
+        KafeSuggestionBarToggle.attach(bar)
         return s
     }
 

@@ -1989,6 +1989,7 @@ class Keyboard2View @JvmOverloads constructor(
     }
 
     override fun onDraw(canvas: Canvas) {
+        tribixbite.cleverkeys.kafe.KafeKeyPreview.beginFrame(this) // Kafe: preview on the window overlay
         // The user's "Animated scenes" (also applied as it changes: syncBackdropMotion).
         syncBackdropMotion()
         val backdrop = background as? tribixbite.cleverkeys.theme.BackdropDrawable
@@ -2252,7 +2253,12 @@ class Keyboard2View @JvmOverloads constructor(
         // A look's key-press preview, above the keys; not while swipe typing or in the popover.
         if (previewKv != null && lookPreview != null && _subkeyPopover == null &&
             _swipeRecognizer?.isSwipeTyping() != true) {
-            drawKeyPreview(canvas, lookPreview, previewKv, previewX, previewY, previewW, previewH, previewR, tc)
+            // Kafe: drawn on the window overlay (KafeKeyPreview), so the top row's preview rises
+            // over the suggestion bar instead of being pushed down onto the key.
+            val kv = previewKv; val kx = previewX; val ky = previewY; val kw = previewW; val kh = previewH; val kr = previewR
+            if (!tribixbite.cleverkeys.kafe.KafeKeyPreview.post(this, kh) { c, dy ->
+                    drawKeyPreview(c, tribixbite.cleverkeys.kafe.KafeKeyPreview.sized(lookPreview), kv, kx, ky + dy, kw, kh, kr, tc) })
+                drawKeyPreview(canvas, lookPreview, previewKv, previewX, previewY, previewW, previewH, previewR, tc)
         }
 
         // Draw swipe trail if swipe typing is enabled and active

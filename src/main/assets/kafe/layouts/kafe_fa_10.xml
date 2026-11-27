@@ -1,20 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Kafe Keyboard: Persian, 10 columns, based on CleverKeys' Persian PC (arab_pc_ir).
-     Every row is 10 units wide. Letters off the main keys, on swipe-up (N) unless noted:
-       ث on ص · ظ on ط · ذ on ز · ژ on ر (top-left, as on Persian PC) · گ moved to row 3.
-     Hamza letters, digits, half-space and symbols keep their Persian PC places. -->
+<!-- Kafe Keyboard: Persian, 10 columns, laid out like the common Persian phone keyboards.
+     27 letters on their own keys; the 5 rare ones pair with their look-alikes on swipe-up (N):
+       ض on ص · غ on ع · ظ on ط · ژ on ز · ذ on د   (and ؤ on و).
+     ک and گ sit side by side on row 3. Digits stay top-right on row 1, symbols in their
+     Persian PC places, half-space on ت (top-left) and on the bottom row. -->
 <keyboard name="Persian 10 (Kafe)" script="persian" language="fa" bottom_row="false">
   <row>
-    <key key0="ض" key2="۱" key4="loc esc"/>
-    <key key0="ص" key2="۲" key1="~" key3="\@" key7="ث"/>
+    <key key0="ص" key7="ض" key2="۱" key4="loc esc"/>
+    <key key0="ث" key2="۲" key1="~" key3="\@"/>
     <key key0="ق" key2="۳" key1="!" key3="\#"/>
     <key key0="ف" key2="۴" key1="﷼" key3="$"/>
-    <key key0="غ" key2="۵" key1="،" key3="٪"/>
-    <key key0="ع" key2="۶" key3="^"/>
-    <key key0="ه" key2="۷" key3="&amp;"/>
-    <key key0="خ" key2="۸" key3="*"/>
-    <key key0="ح" key2="۹" key3="(" key4=")"/>
-    <key key0="ج" key2="۰"/>
+    <key key0="ع" key7="غ" key2="۵" key1="،" key3="٪"/>
+    <key key0="ه" key2="۶" key3="^"/>
+    <key key0="خ" key2="۷" key3="&amp;"/>
+    <key key0="ح" key2="۸" key3="*"/>
+    <key key0="ج" key2="۹" key3="(" key4=")"/>
+    <key key0="چ" key2="۰"/>
   </row>
   <row>
     <key key0="ش" key2="loc tab"/>
@@ -26,18 +27,18 @@
     <key key0="ت" key1="halfspace" key2="+"/>
     <key key0="ن"/>
     <key key0="م"/>
-    <key key0="ک"/>
-  </row>
-  <row>
-    <key key0="ط" key7="ظ"/>
-    <key key0="ز" key1="«" key2="»" key7="ذ"/>
-    <key key0="ر" key1="ژ" key2="."/>
-    <key key0="د" key1=":" key2="؛"/>
     <key key0="پ" key2="&#1567;"/>
-    <key key0="و" key2="ؤ"/>
-    <key key0="چ"/>
-    <key key0="گ"/>
-    <key width="2.0" key0="backspace" key1="delete_last_word" key2="delete"/>
+  </row>
+  <!-- 7 letters + backspace, widened to fill the 10 units. -->
+  <row>
+    <key width="1.15" key0="ط" key7="ظ"/>
+    <key width="1.15" key0="ز" key7="ژ" key1="«" key2="»"/>
+    <key width="1.15" key0="ر" key2="."/>
+    <key width="1.15" key0="د" key7="ذ" key1=":" key2="؛"/>
+    <key width="1.15" key0="و" key7="ؤ"/>
+    <key width="1.15" key0="ک"/>
+    <key width="1.15" key0="گ"/>
+    <key width="1.95" key0="backspace" key1="delete_last_word" key2="delete"/>
   </row>
   <!-- Persian PC's own bottom row (half-space right of the space bar), scaled to 10 units. -->
   <row height="0.95">

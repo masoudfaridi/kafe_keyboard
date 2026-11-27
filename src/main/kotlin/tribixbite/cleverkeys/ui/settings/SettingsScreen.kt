@@ -226,6 +226,9 @@ internal fun SettingsActivity.SettingsScreen() {
                 }
             }
 
+            // Kafe: the tutorial is the first item.
+            tribixbite.cleverkeys.kafe.KafeTutorialSettingsItem()
+
             // Test Keyboard Section (#1134: test input without leaving settings)
             TestKeyboardSection()
 

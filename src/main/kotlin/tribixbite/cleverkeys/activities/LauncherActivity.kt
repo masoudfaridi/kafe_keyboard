@@ -505,6 +505,7 @@ fun LauncherScreen(
 
                 // Kafe: keyboard languages, right after selecting the keyboard.
                 tribixbite.cleverkeys.kafe.KafeKeyboardLanguagesCard(colors.title, colors.subtitle)
+                tribixbite.cleverkeys.kafe.KafeTutorialCard(colors.title, colors.subtitle)
 
                 SetupCard(
                     number = "3",

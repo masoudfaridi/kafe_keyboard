@@ -1186,8 +1186,9 @@ class Keyboard2View @JvmOverloads constructor(
         val keyboard = _keyboard ?: return null
         val tc = _tc ?: return null
         val row = keyboard.rows.firstOrNull { r -> r.keys.any { it === key } } ?: return null
-        val cellW = key.width * _keyWidth
-        val cellH = row.height * tc.row_height
+        // Kafe: cells larger than the key (KafeSubkeyPopover).
+        val cellW = key.width * _keyWidth * tribixbite.cleverkeys.kafe.KafeSubkeyPopover.SCALE
+        val cellH = row.height * tc.row_height * tribixbite.cleverkeys.kafe.KafeSubkeyPopover.SCALE
         if (cellW <= 0f || cellH <= 0f || width == 0 || height == 0) return null
         // The grid stays above the navigation bar: the view reaches under it (`_insets_bottom`),
         // and a bottom-row key's lowest cells were drawn behind the system's buttons (Saga,
